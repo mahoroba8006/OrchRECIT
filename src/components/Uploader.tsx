@@ -270,9 +270,7 @@ export default function Uploader() {
                                         <input type="text" className={inputCls} value={editDraft.purchasedItems || ''} onChange={e => setEditDraft({ ...editDraft, purchasedItems: e.target.value })} />
 
                                         <label className="text-slate-500 whitespace-nowrap">科目</label>
-                                        <select className={inputCls} value={editDraft.category || ''} onChange={e => setEditDraft({ ...editDraft, category: e.target.value })}>
-                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                        <input type="text" className={inputCls} value={editDraft.category || ''} onChange={e => setEditDraft({ ...editDraft, category: e.target.value })} />
 
                                         <label className="text-slate-500 whitespace-nowrap">支払方法</label>
                                         <input type="text" className={inputCls} value={editDraft.paymentMethod || ''} onChange={e => setEditDraft({ ...editDraft, paymentMethod: e.target.value })} />
