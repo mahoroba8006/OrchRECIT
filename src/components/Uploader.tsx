@@ -41,8 +41,8 @@ export default function Uploader() {
         const toastId = toast.loading('画像を最適化しています...');
         try {
             const options = {
-                maxSizeMB: 1,
-                maxWidthOrHeight: 1920,
+                maxSizeMB: 0.5, // 1MBから0.5MBに削減
+                maxWidthOrHeight: 1000, // 1920から1000に縮小
                 useWebWorker: true,
             };
             const compressed = await imageCompression(originalFile, options);
