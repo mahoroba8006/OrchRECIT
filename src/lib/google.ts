@@ -159,9 +159,25 @@ export async function updateRowInSheet(accessToken: string, spreadsheetId: strin
 export async function deleteRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number): Promise<any> {
   const { sheets } = getGoogleClient(accessToken);
   if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-  const res = await sheets.spreadsheets.values.clear({
+  // rowIndex は1始まり。SheetsAPI の deleteDimension は0始まりのため変換する
+  const zeroBasedIndex = rowIndex - 1;
+  const res = await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
-    range: `A${rowIndex}:I${rowIndex}`,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: 0,          // 1枚目のシート（ID=0）
+              dimension: 'ROWS',
+              startIndex: zeroBasedIndex,
+              endIndex: zeroBasedIndex + 1, // 終端は exclusive
+            },
+          },
+        },
+      ],
+    },
   });
   return res.data;
 }
+
