@@ -119,7 +119,13 @@ export default function Uploader() {
             }
         } catch (err: any) {
             console.error(err);
-            toast.error(err.message, { id: loadingToast });
+            const msg = err.message || '';
+            if (msg.includes('503') || msg.includes('429') || msg.includes('parse') || msg.includes('fetch') || msg.includes('failed') || msg.includes('内部エラー')) {
+                toast.dismiss(loadingToast);
+                window.alert('しばらく待ってから再度処理してください。\n（AIモデルがビジー状態、または通信エラーです）');
+            } else {
+                toast.error(msg, { id: loadingToast });
+            }
         } finally {
             setIsUploading(false);
         }
@@ -240,7 +246,7 @@ export default function Uploader() {
                                     ) : (
                                         <>
                                             <UploadCloud size={20} />
-                                            この画像を解析してアップロード
+                                            この画像を解析
                                         </>
                                     )}
                                 </button>
@@ -271,6 +277,8 @@ export default function Uploader() {
                                         </div>
                                         <div className="text-slate-500">支払方法</div>
                                         <div className="font-medium">{result.paymentMethod || '-'}</div>
+                                        <div className="text-slate-500">AIコメント</div>
+                                        <div className="font-medium text-xs text-slate-600 leading-relaxed">{result.aiComment || '-'}</div>
                                     </div>
                                     <button
                                         onClick={cancelSelection}

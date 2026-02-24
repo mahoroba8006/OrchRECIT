@@ -113,7 +113,8 @@ export async function POST(req: Request) {
             result.purchasedItems || '',
             result.category || '',
             result.paymentMethod || '',
-            driveLink // オリジナル画像プレビューリンク
+            driveLink || '',
+            result.aiComment || ''
         ]);
 
         console.log("Done!");
