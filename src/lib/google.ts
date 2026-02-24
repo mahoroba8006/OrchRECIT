@@ -88,9 +88,9 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     // Set headers
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: 'A1:H1',
+      range: 'A1:I1',
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [['日付', '支払先', '金額', '事業者番号', '品目', '科目', '支払方法', '原本画像リンク']] }
+      requestBody: { values: [['日付', '支払先', '金額', '事業者番号', '品目', '科目', '支払方法', '原本画像リンク', 'AIコメント']] }
     });
   }
 
@@ -108,7 +108,7 @@ export async function appendRowToSheet(accessToken: string, spreadsheetId: strin
   if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
   const res = await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: 'A:H',
+    range: 'A:I',
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
   });
@@ -120,7 +120,7 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
   if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: 'A:H',
+    range: 'A:I',
   });
 
   const rows = res.data.values || [];
@@ -135,6 +135,7 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
       category: row[5] || '',
       paymentMethod: row[6] || '',
       driveLink: row[7] || '',
+      aiComment: row[8] || '',
     };
   }).filter((row, index) => {
     if (index === 0) return false; // ヘッダー行を除外
@@ -148,7 +149,7 @@ export async function updateRowInSheet(accessToken: string, spreadsheetId: strin
   if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
   const res = await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `A${rowIndex}:H${rowIndex}`,
+    range: `A${rowIndex}:I${rowIndex}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
   });
@@ -160,7 +161,7 @@ export async function deleteRowInSheet(accessToken: string, spreadsheetId: strin
   if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
   const res = await sheets.spreadsheets.values.clear({
     spreadsheetId,
-    range: `A${rowIndex}:H${rowIndex}`,
+    range: `A${rowIndex}:I${rowIndex}`,
   });
   return res.data;
 }
