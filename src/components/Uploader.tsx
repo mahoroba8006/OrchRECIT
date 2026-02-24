@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Camera, CheckCircle, Loader2, FileImage } from 'lucide-react';
+import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
@@ -10,20 +10,18 @@ export default function Uploader() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [result, setResult] = useState<any>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [result, setResult] = useState<any>(null);   // 解析済み（未保存）
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const selected = e.target.files[0];
-            await handleImageSelection(selected);
+            await handleImageSelection(e.target.files[0]);
         }
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-    };
+    const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
@@ -40,19 +38,16 @@ export default function Uploader() {
     const handleImageSelection = async (originalFile: File) => {
         const toastId = toast.loading('画像を最適化しています...');
         try {
-            const options = {
-                maxSizeMB: 0.5, // 1MBから0.5MBに削減
-                maxWidthOrHeight: 1000, // 1920から1000に縮小
+            const compressed = await imageCompression(originalFile, {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1000,
                 useWebWorker: true,
-            };
-            const compressed = await imageCompression(originalFile, options);
+            });
             setFile(compressed as File);
             setPreviewUrl(URL.createObjectURL(compressed));
             setResult(null);
             toast.dismiss(toastId);
-        } catch (error) {
-            console.error('Compression error:', error);
-            // エラー時は元のファイルを使用する
+        } catch {
             setFile(originalFile);
             setPreviewUrl(URL.createObjectURL(originalFile));
             setResult(null);
@@ -60,11 +55,7 @@ export default function Uploader() {
         }
     };
 
-    const cancelSelection = () => {
-        // 結果が表示されている状態（＝アップロード完了後）から戻る場合は、履歴再取得のイベントを発火する
-        if (result) {
-            window.dispatchEvent(new Event('receiptUploaded'));
-        }
+    const resetAll = () => {
         setFile(null);
         setPreviewUrl(null);
         setResult(null);
@@ -72,55 +63,29 @@ export default function Uploader() {
         if (cameraInputRef.current) cameraInputRef.current.value = "";
     };
 
-    const processUpload = async (forceSave = false, overrideData: any = null) => {
+    // ── STEP 1: AI解析のみ（保存しない） ───────────────────────────────
+    const handleAnalyze = async () => {
         if (!file) return;
-
         setIsUploading(true);
-        const loadingToast = forceSave
-            ? toast.loading('データを保存しています...')
-            : toast.loading('AIでレシートを解析しています...');
-
+        const loadingToast = toast.loading('AIでレシートを解析しています...');
         try {
             const formData = new FormData();
             formData.append('file', file);
-            if (forceSave) {
-                formData.append('forceSave', 'true');
-                if (overrideData) {
-                    formData.append('receiptData', JSON.stringify(overrideData));
-                }
-            }
+            formData.append('analyzeOnly', 'true');
 
-            const res = await fetch('/api/process-receipt', {
-                method: 'POST',
-                body: formData,
-            });
-
+            const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
             const data = await res.json();
 
             if (res.ok && data.success) {
-                if (data.duplicate) {
-                    toast.dismiss(loadingToast);
-                    const isConfirmed = window.confirm(
-                        '同じ内容と思われる支払が既に存在します。取り込みますか？'
-                    );
-                    if (isConfirmed) {
-                        return await processUpload(true, data.data);
-                    } else {
-                        toast.error('取り込みをキャンセルしました', { icon: 'ℹ️' });
-                        setIsUploading(false);
-                        return;
-                    }
-                }
-
-                toast.success('解析と保存が完了しました！', { id: loadingToast });
+                toast.dismiss(loadingToast);
                 setResult(data.data);
             } else {
-                throw new Error(data.error || 'アップロードに失敗しました');
+                throw new Error(data.error || '解析に失敗しました');
             }
         } catch (err: any) {
             console.error(err);
             const msg = err.message || '';
-            if (msg.includes('503') || msg.includes('429') || msg.includes('parse') || msg.includes('fetch') || msg.includes('failed') || msg.includes('内部エラー')) {
+            if (msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE') || msg.includes('内部エラー')) {
                 toast.dismiss(loadingToast);
                 window.alert('しばらく待ってから再度処理してください。\n（AIモデルがビジー状態、または通信エラーです）');
             } else {
@@ -131,8 +96,38 @@ export default function Uploader() {
         }
     };
 
-    const handleUploadClick = () => {
-        processUpload(false);
+    // ── STEP 2a: 取込（スプレッドシート＋Drive保存） ────────────────────
+    const handleSave = async () => {
+        if (!file || !result) return;
+        setIsSaving(true);
+        const loadingToast = toast.loading('スプレッドシートへ保存しています...');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('forceSave', 'true');
+            formData.append('receiptData', JSON.stringify(result));
+
+            const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                toast.success('取込が完了しました！', { id: loadingToast });
+                window.dispatchEvent(new Event('receiptUploaded'));
+                resetAll();
+            } else {
+                throw new Error(data.error || '保存に失敗しました');
+            }
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.message || '保存に失敗しました', { id: loadingToast });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // ── STEP 2b: 破棄 ────────────────────────────────────────────────────
+    const handleDiscard = () => {
+        resetAll();
     };
 
     return (
@@ -159,30 +154,14 @@ export default function Uploader() {
                             PNG, JPG, JPEG 等の画像形式に対応しています
                         </p>
 
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                        />
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            ref={cameraInputRef}
-                            onChange={handleFileChange}
-                        />
+                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleFileChange} />
 
                         <div className="flex gap-4 w-full justify-center">
                             <button
                                 type="button"
                                 className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    fileInputRef.current?.click();
-                                }}
+                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                             >
                                 <FileImage size={18} />
                                 端末から選択
@@ -190,10 +169,7 @@ export default function Uploader() {
                             <button
                                 type="button"
                                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 shadow-sm transition-all"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    cameraInputRef.current?.click();
-                                }}
+                                onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
                             >
                                 <Camera size={18} />
                                 カメラで撮影
@@ -213,10 +189,7 @@ export default function Uploader() {
                                 選択された画像
                             </h3>
                             {!isUploading && !result && (
-                                <button
-                                    onClick={cancelSelection}
-                                    className="text-sm text-slate-500 hover:text-slate-800"
-                                >
+                                <button onClick={resetAll} className="text-sm text-slate-500 hover:text-slate-800">
                                     キャンセル
                                 </button>
                             )}
@@ -225,16 +198,13 @@ export default function Uploader() {
                         <div className="p-6">
                             <div className="relative w-full h-48 md:h-64 rounded-xl overflow-hidden bg-slate-100 mb-6 flex items-center justify-center">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={previewUrl!}
-                                    alt="Preview"
-                                    className="object-contain w-full h-full"
-                                />
+                                <img src={previewUrl!} alt="Preview" className="object-contain w-full h-full" />
                             </div>
 
                             {!result ? (
+                                /* ── STEP 1 ボタン ── */
                                 <button
-                                    onClick={handleUploadClick}
+                                    onClick={handleAnalyze}
                                     disabled={isUploading}
                                     className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                                 >
@@ -251,14 +221,15 @@ export default function Uploader() {
                                     )}
                                 </button>
                             ) : (
+                                /* ── STEP 2: 確認画面 ── */
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
-                                    className="bg-green-50 border border-green-200 rounded-xl p-5"
+                                    className="bg-blue-50 border border-blue-200 rounded-xl p-5"
                                 >
-                                    <div className="flex items-center gap-2 text-green-700 font-semibold mb-4 pb-3 border-b border-green-200/50">
+                                    <div className="flex items-center gap-2 text-blue-700 font-semibold mb-4 pb-3 border-b border-blue-200/50">
                                         <CheckCircle size={20} />
-                                        正常にスプレッドシートへ追記されました
+                                        画像から次の情報を取得しました
                                     </div>
                                     <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
                                         <div className="text-slate-500">日付</div>
@@ -280,12 +251,35 @@ export default function Uploader() {
                                         <div className="text-slate-500">AIコメント</div>
                                         <div className="font-medium text-xs text-slate-600 leading-relaxed">{result.aiComment || '-'}</div>
                                     </div>
-                                    <button
-                                        onClick={cancelSelection}
-                                        className="mt-6 w-full py-3 bg-white border border-green-300 text-green-700 rounded-xl font-medium hover:bg-green-100 transition-colors"
-                                    >
-                                        OK
-                                    </button>
+
+                                    {/* 取込 / 破棄 ボタン */}
+                                    <div className="mt-6 flex gap-3">
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="animate-spin" size={18} />
+                                                    保存中...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Download size={18} />
+                                                    取込
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handleDiscard}
+                                            disabled={isSaving}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 disabled:opacity-70 transition-all"
+                                        >
+                                            <Trash2 size={18} />
+                                            破棄
+                                        </button>
+                                    </div>
                                 </motion.div>
                             )}
                         </div>

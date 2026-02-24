@@ -33,11 +33,12 @@ export async function POST(req: Request) {
         const base64Image = buffer.toString('base64');
 
         const forceSave = formData.get('forceSave') === 'true';
+        const analyzeOnly = formData.get('analyzeOnly') === 'true';
         const receiptDataStr = formData.get('receiptData') as string | null;
 
         let result;
         if (receiptDataStr) {
-            // 確認ダイアログで「保存する」が選ばれた場合、再度のGemini呼び出しをスキップ
+            // 「取込」ボタン押下時：提供されたデータを使用してGemini呼び出しをスキップ
             result = JSON.parse(receiptDataStr);
             console.log("Skipping Gemini, using provided data:", result);
         } else {
@@ -46,6 +47,12 @@ export async function POST(req: Request) {
             const base64Image = buffer.toString('base64');
             result = await analyzeReceipt(base64Image, file.type);
             console.log("Analyzed data:", result);
+        }
+
+        // 解析のみモード：保存処理をスキップして結果を返す
+        if (analyzeOnly) {
+            console.log("analyzeOnly mode: returning result without saving.");
+            return NextResponse.json({ success: true, data: result });
         }
 
         // 1.5. 重複チェック処理
