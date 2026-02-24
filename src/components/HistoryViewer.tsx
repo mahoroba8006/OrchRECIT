@@ -23,7 +23,7 @@ export default function HistoryViewer() {
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [editingRow, setEditingRow] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState<Partial<ReceiptRow>>({});
+    const [editForm, setEditForm] = useState<Partial<ReceiptRow & { oldDate: string }>>({});
 
     const { data: session, status } = useSession();
 
@@ -115,7 +115,7 @@ export default function HistoryViewer() {
 
     const startEdit = (row: ReceiptRow) => {
         setEditingRow(row.rowIndex);
-        setEditForm({ ...row });
+        setEditForm({ ...row, oldDate: row.date }); // oldDate = 編集前の日付（Drive移動判定用）
     };
 
     const cancelEdit = () => {

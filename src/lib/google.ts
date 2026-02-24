@@ -181,3 +181,50 @@ export async function deleteRowInSheet(accessToken: string, spreadsheetId: strin
   return res.data;
 }
 
+/**
+ * Drive上のファイルを新しい日付フォルダへ移動し、ファイル名を新日付でリネームする
+ * @param receiptsFolderId 「領収書」親フォルダのID
+ * @param newDate          YYYY-MM-DD 形式の新しい日付
+ * @param newPayee         新しい支払先名（ファイル名に使用）
+ */
+export async function moveFileToDriveFolder(
+  accessToken: string,
+  fileId: string,
+  receiptsFolderId: string,
+  newDate: string,
+  newPayee: string
+): Promise<void> {
+  const { drive } = getGoogleClient(accessToken);
+
+  // 現在のファイル情報（名前・親フォルダ）を取得
+  const fileInfo = await drive.files.get({ fileId, fields: 'name,parents' });
+  const currentName = fileInfo.data.name || '';
+  const ext = currentName.includes('.') ? currentName.split('.').pop() : 'jpg';
+  const currentParents = (fileInfo.data.parents || []).join(',');
+
+  // 新日付からフォルダ構成を計算
+  const [year, month, day] = newDate.split('-');
+  const yearMonthStr = `${year}${month}`;
+  const dateFormatted = `${year}${month}${day}`;
+
+  // YYYY フォルダの解決・作成
+  let yearFolderId = await getFolderIdByName(accessToken, receiptsFolderId, year);
+  if (!yearFolderId) yearFolderId = await createFolder(accessToken, receiptsFolderId, year);
+
+  // YYYYMM フォルダの解決・作成
+  let yearMonthFolderId = await getFolderIdByName(accessToken, yearFolderId, yearMonthStr);
+  if (!yearMonthFolderId) yearMonthFolderId = await createFolder(accessToken, yearFolderId, yearMonthStr);
+
+  // ファイルを新フォルダへ移動し同時にリネーム
+  const safePayee = newPayee.replace(/[\\/:*?"<>|\s]/g, '_');
+  const newName = `${dateFormatted}_${safePayee}.${ext}`;
+  await drive.files.update({
+    fileId,
+    addParents: yearMonthFolderId,
+    removeParents: currentParents,
+    requestBody: { name: newName },
+    fields: 'id',
+  });
+}
+
+

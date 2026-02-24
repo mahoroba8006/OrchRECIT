@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRowsFromSheet, updateRowInSheet, deleteRowInSheet, deleteFileFromDrive, setupUserWorkspace } from '@/lib/google';
+import { getRowsFromSheet, updateRowInSheet, deleteRowInSheet, deleteFileFromDrive, setupUserWorkspace, moveFileToDriveFolder } from '@/lib/google';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 
@@ -27,7 +27,7 @@ export async function PUT(req: Request) {
         }
 
         const body = await req.json();
-        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink } = body;
+        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink, oldDate } = body;
 
         if (!rowIndex) {
             return NextResponse.json({ error: 'rowIndex is required' }, { status: 400 });
@@ -35,8 +35,30 @@ export async function PUT(req: Request) {
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
 
+        // スプレッドシートの行を更新
         const values = [date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink];
         await updateRowInSheet(session.accessToken as string, workspace.spreadsheetId, rowIndex, values);
+
+        // 日付が変更された場合、Drive上のファイルを新フォルダへ移動・リネーム
+        if (oldDate && date && date !== oldDate && driveLink) {
+            try {
+                const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    await moveFileToDriveFolder(
+                        session.accessToken as string,
+                        fileId,
+                        workspace.receiptsFolderId,
+                        date,
+                        payee || ''
+                    );
+                    console.log(`Drive file moved to new date folder: ${date}`);
+                }
+            } catch (err) {
+                console.error('Drive file move failed (sheet update succeeded):', err);
+                // ファイル移動が失敗しても、スプレッドシート更新は成功済みのため続行
+            }
+        }
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

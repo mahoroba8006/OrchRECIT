@@ -1,17 +1,26 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2 } from 'lucide-react';
+import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
+
+const CATEGORIES = [
+    '種苗費', '肥料費', '農薬費', '諸材料費', '小農具費', '修繕費', '動力光熱費',
+    '賃借料及び料金', '雇用労賃', '販売費', '租税公課', '荷造運賃', '通信費',
+    '消耗品費', '福利厚生費', '損害保険料', '利子割引料', '外注工賃',
+    '地代家賃', '減価償却費（機械）', '減価償却費（建物）',
+];
 
 export default function Uploader() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [result, setResult] = useState<any>(null);   // 解析済み（未保存）
+    const [result, setResult] = useState<any>(null);      // AI解析済み（未保存）
+    const [isEditing, setIsEditing] = useState(false);    // 編集モード
+    const [editDraft, setEditDraft] = useState<any>(null); // 編集中の一時データ
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,11 +55,13 @@ export default function Uploader() {
             setFile(compressed as File);
             setPreviewUrl(URL.createObjectURL(compressed));
             setResult(null);
+            setIsEditing(false);
             toast.dismiss(toastId);
         } catch {
             setFile(originalFile);
             setPreviewUrl(URL.createObjectURL(originalFile));
             setResult(null);
+            setIsEditing(false);
             toast.dismiss(toastId);
         }
     };
@@ -59,11 +70,13 @@ export default function Uploader() {
         setFile(null);
         setPreviewUrl(null);
         setResult(null);
+        setIsEditing(false);
+        setEditDraft(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (cameraInputRef.current) cameraInputRef.current.value = "";
     };
 
-    // ── STEP 1: AI解析のみ（保存しない） ───────────────────────────────
+    // ── STEP 1: AI解析のみ（保存しない） ────────────────────────────────
     const handleAnalyze = async () => {
         if (!file) return;
         setIsUploading(true);
@@ -79,6 +92,7 @@ export default function Uploader() {
             if (res.ok && data.success) {
                 toast.dismiss(loadingToast);
                 setResult(data.data);
+                setIsEditing(false);
             } else {
                 throw new Error(data.error || '解析に失敗しました');
             }
@@ -96,7 +110,7 @@ export default function Uploader() {
         }
     };
 
-    // ── STEP 2a: 取込（スプレッドシート＋Drive保存） ────────────────────
+    // ── STEP 2a: 取込（スプレッドシート＋Drive保存） ─────────────────────
     const handleSave = async () => {
         if (!file || !result) return;
         setIsSaving(true);
@@ -125,10 +139,26 @@ export default function Uploader() {
         }
     };
 
-    // ── STEP 2b: 破棄 ────────────────────────────────────────────────────
-    const handleDiscard = () => {
-        resetAll();
+    // ── STEP 2b: 修正ボタン ──────────────────────────────────────────────
+    const handleEditStart = () => {
+        setEditDraft({ ...result }); // resultのコピーを編集ドラフトに
+        setIsEditing(true);
     };
+
+    const handleEditConfirm = () => {
+        setResult({ ...editDraft, aiComment: result.aiComment }); // AIコメントはそのまま維持
+        setIsEditing(false);
+    };
+
+    const handleEditCancel = () => {
+        setIsEditing(false);
+        setEditDraft(null);
+    };
+
+    // ── STEP 2c: 破棄 ────────────────────────────────────────────────────
+    const handleDiscard = () => resetAll();
+
+    const inputCls = "w-full p-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none";
 
     return (
         <div className="w-full max-w-2xl mx-auto mt-8">
@@ -163,16 +193,14 @@ export default function Uploader() {
                                 className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
                                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                             >
-                                <FileImage size={18} />
-                                端末から選択
+                                <FileImage size={18} />端末から選択
                             </button>
                             <button
                                 type="button"
                                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 shadow-sm transition-all"
                                 onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
                             >
-                                <Camera size={18} />
-                                カメラで撮影
+                                <Camera size={18} />カメラで撮影
                             </button>
                         </div>
                     </motion.div>
@@ -209,17 +237,62 @@ export default function Uploader() {
                                     className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                                 >
                                     {isUploading ? (
-                                        <>
-                                            <Loader2 className="animate-spin" size={20} />
-                                            AI解析中...
-                                        </>
+                                        <><Loader2 className="animate-spin" size={20} />AI解析中...</>
                                     ) : (
-                                        <>
-                                            <UploadCloud size={20} />
-                                            この画像を解析
-                                        </>
+                                        <><UploadCloud size={20} />この画像を解析</>
                                     )}
                                 </button>
+                            ) : isEditing ? (
+                                /* ── 編集フォーム ── */
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="bg-amber-50 border border-amber-200 rounded-xl p-5"
+                                >
+                                    <div className="flex items-center gap-2 text-amber-700 font-semibold mb-4 pb-3 border-b border-amber-200/50">
+                                        <Pencil size={18} />
+                                        内容を修正（AIコメントは変更できません）
+                                    </div>
+                                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 items-center text-sm">
+                                        <label className="text-slate-500 whitespace-nowrap">日付</label>
+                                        <input type="date" className={inputCls} value={editDraft.date || ''} onChange={e => setEditDraft({ ...editDraft, date: e.target.value })} />
+
+                                        <label className="text-slate-500 whitespace-nowrap">支払先</label>
+                                        <input type="text" className={inputCls} value={editDraft.payee || ''} onChange={e => setEditDraft({ ...editDraft, payee: e.target.value })} />
+
+                                        <label className="text-slate-500 whitespace-nowrap">金額</label>
+                                        <input type="number" className={inputCls} value={editDraft.amount || ''} onChange={e => setEditDraft({ ...editDraft, amount: Number(e.target.value) })} />
+
+                                        <label className="text-slate-500 whitespace-nowrap">事業者番号</label>
+                                        <input type="text" className={inputCls} value={editDraft.businessNumber || ''} onChange={e => setEditDraft({ ...editDraft, businessNumber: e.target.value })} />
+
+                                        <label className="text-slate-500 whitespace-nowrap">品目</label>
+                                        <input type="text" className={inputCls} value={editDraft.purchasedItems || ''} onChange={e => setEditDraft({ ...editDraft, purchasedItems: e.target.value })} />
+
+                                        <label className="text-slate-500 whitespace-nowrap">科目</label>
+                                        <select className={inputCls} value={editDraft.category || ''} onChange={e => setEditDraft({ ...editDraft, category: e.target.value })}>
+                                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+
+                                        <label className="text-slate-500 whitespace-nowrap">支払方法</label>
+                                        <input type="text" className={inputCls} value={editDraft.paymentMethod || ''} onChange={e => setEditDraft({ ...editDraft, paymentMethod: e.target.value })} />
+                                    </div>
+
+                                    <div className="mt-5 flex gap-3">
+                                        <button
+                                            onClick={handleEditConfirm}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-all"
+                                        >
+                                            <Check size={18} />修正を確定
+                                        </button>
+                                        <button
+                                            onClick={handleEditCancel}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-all"
+                                        >
+                                            <X size={18} />キャンセル
+                                        </button>
+                                    </div>
+                                </motion.div>
                             ) : (
                                 /* ── STEP 2: 確認画面 ── */
                                 <motion.div
@@ -252,32 +325,32 @@ export default function Uploader() {
                                         <div className="font-medium text-xs text-slate-600 leading-relaxed">{result.aiComment || '-'}</div>
                                     </div>
 
-                                    {/* 取込 / 破棄 ボタン */}
-                                    <div className="mt-6 flex gap-3">
+                                    {/* 取込 / 修正 / 破棄 ボタン */}
+                                    <div className="mt-6 flex gap-2">
                                         <button
                                             onClick={handleSave}
                                             disabled={isSaving}
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm"
                                         >
                                             {isSaving ? (
-                                                <>
-                                                    <Loader2 className="animate-spin" size={18} />
-                                                    保存中...
-                                                </>
+                                                <><Loader2 className="animate-spin" size={18} />保存中...</>
                                             ) : (
-                                                <>
-                                                    <Download size={18} />
-                                                    取込
-                                                </>
+                                                <><Download size={18} />取込</>
                                             )}
+                                        </button>
+                                        <button
+                                            onClick={handleEditStart}
+                                            disabled={isSaving}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 disabled:opacity-70 transition-all"
+                                        >
+                                            <Pencil size={18} />修正
                                         </button>
                                         <button
                                             onClick={handleDiscard}
                                             disabled={isSaving}
                                             className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 disabled:opacity-70 transition-all"
                                         >
-                                            <Trash2 size={18} />
-                                            破棄
+                                            <Trash2 size={18} />破棄
                                         </button>
                                     </div>
                                 </motion.div>
