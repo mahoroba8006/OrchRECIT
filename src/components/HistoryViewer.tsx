@@ -208,6 +208,7 @@ export default function HistoryViewer() {
                                             <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">
                                                 {isEditing ? (
                                                     <input
+                                                        type="date"
                                                         className="w-full p-1 border rounded"
                                                         value={editForm.date || ''}
                                                         onChange={e => setEditForm({ ...editForm, date: e.target.value })}
