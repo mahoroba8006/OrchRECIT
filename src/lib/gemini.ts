@@ -57,7 +57,7 @@ const RECEIPT_PROMPT = `あなたは日本の農業青色申告の経費科目�
 export async function analyzeReceipt(base64Image: string, mimeType: string): Promise<ReceiptData> {
     const response = await withRetry(() =>
         ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.0-flash',
             contents: [
                 {
                     role: 'user',
@@ -122,7 +122,7 @@ export async function searchReceipts(query: string, rows: any[]): Promise<number
 
     const response = await withRetry(() =>
         ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.0-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 temperature: 0.1,
