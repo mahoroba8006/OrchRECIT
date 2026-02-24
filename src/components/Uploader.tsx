@@ -251,7 +251,7 @@ export default function Uploader() {
                                 >
                                     <div className="flex items-center gap-2 text-amber-700 font-semibold mb-4 pb-3 border-b border-amber-200/50">
                                         <Pencil size={18} />
-                                        内容を修正（AIコメントは変更できません）
+                                        内容を修正
                                     </div>
                                     <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 items-center text-sm">
                                         <label className="text-slate-500 whitespace-nowrap">日付</label>
@@ -339,7 +339,7 @@ export default function Uploader() {
                                         <button
                                             onClick={handleEditStart}
                                             disabled={isSaving}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 disabled:opacity-70 transition-all"
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-300 text-white rounded-xl font-semibold hover:bg-amber-400 disabled:opacity-70 transition-all"
                                         >
                                             <Pencil size={18} />修正
                                         </button>
