@@ -1,0 +1,166 @@
+import { google } from 'googleapis';
+import { Readable } from 'stream';
+
+// OAuth用に動的にauthクライアントを生成する関数
+export function getGoogleClient(accessToken: string) {
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  auth.setCredentials({ access_token: accessToken });
+
+  return {
+    drive: google.drive({ version: 'v3', auth }),
+    sheets: google.sheets({ version: 'v4', auth })
+  };
+}
+
+export async function getFolderIdByName(accessToken: string, parentId: string, folderName: string): Promise<string | null> {
+  const { drive } = getGoogleClient(accessToken);
+  const query = `'${parentId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  const res = await drive.files.list({
+    q: query,
+    fields: 'files(id, name)',
+    spaces: 'drive',
+  });
+  return (res.data.files && res.data.files.length > 0) ? res.data.files[0].id || null : null;
+}
+
+export async function createFolder(accessToken: string, parentId: string, folderName: string): Promise<string> {
+  const { drive } = getGoogleClient(accessToken);
+  const fileMetadata = { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] };
+  const res = await drive.files.create({
+    requestBody: fileMetadata,
+    fields: 'id',
+  });
+  return res.data.id || '';
+}
+
+export async function uploadFileToDrive(accessToken: string, folderId: string, fileName: string, mimeType: string, buffer: Buffer): Promise<string> {
+  const { drive } = getGoogleClient(accessToken);
+  const fileMetadata = { name: fileName, parents: [folderId] };
+  const media = { mimeType: mimeType, body: Readable.from(buffer) };
+  const res = await drive.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: 'id, webViewLink',
+  });
+  return res.data.webViewLink || '';
+}
+
+export async function deleteFileFromDrive(accessToken: string, fileId: string): Promise<void> {
+  const { drive } = getGoogleClient(accessToken);
+  try {
+    // 完全に削除するのではなく、安全のため Drive のゴミ箱に移動します。
+    // もし即時完全削除を希望の場合は drive.files.delete({ fileId }); を用います。
+    // 今回は容量削減が目的なので、明示的に削除(delete)するかゴミ箱かは仕様次第ですが、
+    // ストレージ確保の観点から完全削除 delete を使用します。（Googleの仕様ではゴミ箱も容量を食うため）
+    await drive.files.delete({ fileId });
+  } catch (error: any) {
+    console.error('Failed to delete file from Drive:', error.message);
+    // ファイルが存在しないなどのエラーは握りつぶす（スプレッドシートの行削除は続行させるため）
+  }
+}
+
+export interface UserWorkspace {
+  rootFolderId: string;
+  spreadsheetId: string;
+  receiptsFolderId: string;
+}
+
+export async function setupUserWorkspace(accessToken: string): Promise<UserWorkspace> {
+  // 1. Root folder 'AgriRecit'
+  let rootFolderId = await getFolderIdByName(accessToken, 'root', 'AgriRecit');
+  if (!rootFolderId) {
+    rootFolderId = await createFolder(accessToken, 'root', 'AgriRecit');
+  }
+
+  // 2. Spreadsheet '経費記録'
+  const { drive, sheets } = getGoogleClient(accessToken);
+  const query = `'${rootFolderId}' in parents and name = '経費記録' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
+  const res = await drive.files.list({ q: query, fields: 'files(id)', spaces: 'drive' });
+  let spreadsheetId = res.data.files && res.data.files.length > 0 ? res.data.files[0].id : null;
+
+  if (!spreadsheetId) {
+    const fileMetadata = { name: '経費記録', mimeType: 'application/vnd.google-apps.spreadsheet', parents: [rootFolderId] };
+    const createRes = await drive.files.create({ requestBody: fileMetadata, fields: 'id' });
+    spreadsheetId = createRes.data.id!;
+    // Set headers
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: 'A1:H1',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [['日付', '支払先', '金額', '事業者番号', '品目', '科目', '支払方法', '原本画像リンク']] }
+    });
+  }
+
+  // 3. Receipts folder '領収書'
+  let receiptsFolderId = await getFolderIdByName(accessToken, rootFolderId, '領収書');
+  if (!receiptsFolderId) {
+    receiptsFolderId = await createFolder(accessToken, rootFolderId, '領収書');
+  }
+
+  return { rootFolderId, spreadsheetId, receiptsFolderId };
+}
+
+export async function appendRowToSheet(accessToken: string, spreadsheetId: string, values: string[]): Promise<any> {
+  const { sheets } = getGoogleClient(accessToken);
+  if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
+  const res = await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: 'A:H',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [values] },
+  });
+  return res.data;
+}
+
+export async function getRowsFromSheet(accessToken: string, spreadsheetId: string): Promise<any[]> {
+  const { sheets } = getGoogleClient(accessToken);
+  if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: 'A:H',
+  });
+
+  const rows = res.data.values || [];
+  return rows.map((row, index) => {
+    return {
+      rowIndex: index + 1,
+      date: row[0] || '',
+      payee: row[1] || '',
+      amount: row[2] || '',
+      businessNumber: row[3] || '',
+      purchasedItems: row[4] || '',
+      category: row[5] || '',
+      paymentMethod: row[6] || '',
+      driveLink: row[7] || '',
+    };
+  }).filter((row, index) => {
+    if (index === 0) return false; // ヘッダー行を除外
+    // 日付、支払先、金額、品目、リンクのいずれかが入力されている行のみ残す（全て空の行を除外）
+    return row.date !== '' || row.payee !== '' || row.amount !== '' || row.purchasedItems !== '' || row.driveLink !== '';
+  });
+}
+
+export async function updateRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number, values: string[]): Promise<any> {
+  const { sheets } = getGoogleClient(accessToken);
+  if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
+  const res = await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `A${rowIndex}:H${rowIndex}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [values] },
+  });
+  return res.data;
+}
+
+export async function deleteRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number): Promise<any> {
+  const { sheets } = getGoogleClient(accessToken);
+  if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
+  const res = await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `A${rowIndex}:H${rowIndex}`,
+  });
+  return res.data;
+}
