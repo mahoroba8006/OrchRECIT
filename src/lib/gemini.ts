@@ -2,15 +2,28 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-export interface ReceiptData {
-    date: string;          // YYYY-MM-DD
-    payee: string;         // 支払先
-    amount: number;        // 金額
-    businessNumber: string;// 事業者番号（インボイス登録番号など。無ければ空文字）
-    purchasedItems: string;// 購入品目（複数ある場合はカンマ区切りなど）
-    category: string;      // 勘定科目（消耗品費、旅費交通費など推論）
-    paymentMethod: string; // 支払方法（カード、現金、その他）
-    aiComment?: string;    // AIの判断理由、アドバイスコメント
+/** レシートのヘッダー情報（1枚のレシートに共通） */
+export interface ReceiptHeader {
+    date: string;           // YYYY-MM-DD
+    payee: string;          // 支払先
+    businessNumber: string; // Tから始まるインボイス登録番号。無ければ空文字
+    paymentMethod: string;  // カード・現金など
+}
+
+/** 品目1件分のデータ */
+export interface ReceiptItem {
+    itemName: string;             // 品目名
+    amount: number;               // この品目の金額
+    category: string;             // 勘定科目
+    aiComment: string;            // AIコメント
+    is_asset?: boolean;           // 10万円以上の固定資産候補
+    apportionment_required?: boolean; // 按分が必要な項目
+}
+
+/** analyzeReceipt の返り値（ヘッダー + 品目リスト） */
+export interface AnalyzeReceiptResult {
+    header: ReceiptHeader;
+    items: ReceiptItem[];
 }
 
 // ── ユーティリティ: 指数バックオフ付きリトライ ───────────────────────
@@ -35,26 +48,50 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
     throw new Error('Max retries exceeded');
 }
 
-// ── 農業科目の判断プロンプト（短縮版 ≈680文字） ───────────────────────
-const RECEIPT_PROMPT = `あなたは日本の農業青色申告の経費科目判断AIです。
-すべてのレシートは農業関連の支払いとして扱い、必ず以下21科目のいずれかに分類してください。
+// ── 農業科目の判断プロンプト ─────────────────────────────────────────
+const RECEIPT_PROMPT = `
+# Role
+あなたは農業経理のスペシャリストであり、長野税務署（関東信越国税局）の指導基準を熟知した税理士パートナーです。
+OCRテキストから、個人農家の青色申告決算書（農業所得用）に最適な勘定科目を推論してください。
 
-科目: 種苗費|肥料費|農薬費|諸材料費|小農具費|修繕費|動力光熱費|賃借料及び料金|雇用労賃|販売費|租税公課|荷造運賃|通信費|消耗品費|福利厚生費|損害保険料|利子割引料|外注工賃|地代家賃|減価償却費（機械）|減価償却費（建物）
+# Category Definition Hierarchy
 
-判断の優先ルール:
-- 種/苗/菌 → 種苗費
-- 農薬名・農薬登録品 → 農薬費
-- マルチ/支柱/ネット/被覆資材 → 諸材料費
-- 軽油/灯油/重油（農業用）→ 動力光熱費
-- 農機部品 → 修繕費、本体10万円以上 → 減価償却費（機械）
-- 複数品目は最高金額品の科目を採用
+## 1. 長野税務署 特記科目（最優先）
+- 作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽、保護メガネ。
+- 荷造運賃手数料: 発送用段ボール、緩衝材、送料に加え、JA等の「販売手数料」をここに含める。
+- 小農具費: 10万円未満の剪定バサミ、ノコギリ、ハシゴ、噴霧器、鎌。
 
-ルール:
-- 「要確認」「該当なし」は禁止。必ずいずれかの科目にする
-- AIコメントは最大200文字で「判断理由/注意点/ためになる知識/農業経費とできる具体的な条件」を要点のみ簡潔に記述
+## 2. 農業所得 標準科目
+- 租税公課: 農業用資産の固定資産税、軽トラの自動車税、印紙代。
+- 種苗費: 苗木、種子、接木クリップ。
+- 肥料費: 有機肥料、化成肥料、土壌改良材。
+- 農薬費: 殺虫剤、殺菌剤、除草剤、展着剤。
+- 諸材料費: 果実袋、支柱、誘引紐、反射シート、コンテナ、マルチフィルム、ビニール。
+- 修繕費: トラクター・SSの修理代、タイヤ交換、農具の研ぎ代、ハウス補修。
+- 動力光熱費: 農業用電気、燃料（軽油、ガソリン）、灯油。
+- 小作料・賃借料: 農地借地料、農機リース料。
+- 雇人費: アルバイト賃金、求人広告費、現場への差し入れ（賄い）。
+- 福利厚生費: 従業員の労災保険料、健康診断代（専従者除く）。
+- 利子割引料: 農機ローン利息、農業制度資金の利息。
+- 通信費: 農業用スマホ代、インターネット代、切手・ハガキ。
+- 事務用品費: 伝票、文房具、コピー用紙、会計ソフト利用料。
+- 接待交際費: 農業関係者への慶弔金、手土産、会議後の飲食（業務に関連するもの）。
+- 雑費: 農業会議会費、JA組合費、専門誌、ゴミ処理代。
+
+# Logic & Constraints
+- 農業経費前提: 読み込んだレシートはすべて農業経費として扱い、必ず農業科目に分類する。
+- 10万円ルール: 単一で10万円以上の項目は is_asset: true とし、「固定資産」候補としてフラグを立てる。
+- 按分推論: ガソリン、電気、通信費、車両関連は apportionment_required: true とする。
+- 店舗特性: 「綿半」「カインズ」「コメリ」「JA資材センター」等の店舗は農業関連の確率が高いと判断する。
+
+# Output Rules
+- 品目名・金額をレシートから正確に抽出する。小計・合計行は除外する。
+- 「要確認」「該当なし」は禁止。必ずいずれかの科目にする。
+- AIコメントは「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。長野税務署の特記科目（作業用衣料費・荷造運賃手数料・小農具費）に基づき判断した場合は、その旨を明記する。
+- 品目が1件の場合も items 配列に1件だけ入れて返す。
 `;
 
-export async function analyzeReceipt(base64Image: string, mimeType: string): Promise<ReceiptData> {
+export async function analyzeReceipt(base64Image: string, mimeType: string): Promise<AnalyzeReceiptResult> {
     const response = await withRetry(() =>
         ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -72,25 +109,44 @@ export async function analyzeReceipt(base64Image: string, mimeType: string): Pro
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        date: { type: Type.STRING, description: 'レシートの支払日(YYYY-MM-DD形式)' },
-                        payee: { type: Type.STRING, description: '支払先の店舗名や会社名' },
-                        amount: { type: Type.NUMBER, description: '合計金額' },
-                        businessNumber: { type: Type.STRING, description: 'Tから始まるインボイス登録番号。無ければ空文字' },
-                        purchasedItems: { type: Type.STRING, description: '購入品目の詳細。複数は「,」で繋ぐ' },
-                        category: {
-                            type: Type.STRING,
-                            description: '推測された勘定科目名',
-                            enum: [
-                                '種苗費', '肥料費', '農薬費', '諸材料費', '小農具費', '修繕費', '動力光熱費',
-                                '賃借料及び料金', '雇用労賃', '販売費', '租税公課', '荷造運賃', '通信費',
-                                '消耗品費', '福利厚生費', '損害保険料', '利子割引料', '外注工賃',
-                                '地代家賃', '減価償却費（機械）', '減価償却費（建物）'
-                            ]
+                        header: {
+                            type: Type.OBJECT,
+                            properties: {
+                                date: { type: Type.STRING, description: 'レシートの支払日(YYYY-MM-DD形式)' },
+                                payee: { type: Type.STRING, description: '支払先の店舗名や会社名' },
+                                businessNumber: { type: Type.STRING, description: 'Tから始まるインボイス登録番号。無ければ空文字' },
+                                paymentMethod: { type: Type.STRING, description: 'カード・現金など。不明なら空文字' },
+                            },
+                            required: ['date', 'payee', 'businessNumber', 'paymentMethod'],
                         },
-                        paymentMethod: { type: Type.STRING, description: 'カード・現金など。不明なら空文字' },
-                        reason: { type: Type.STRING, description: 'AIコメント（判断理由、注意点、役立つ知識、農業経費とできる具体的条件など。最大200文字で簡潔に）' }
+                        items: {
+                            type: Type.ARRAY,
+                            description: '品目リスト（小計・合計行は除外）',
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    itemName: { type: Type.STRING, description: '品目名（レシートに記載された名称）' },
+                                    amount: { type: Type.NUMBER, description: 'この品目の金額（税込）' },
+                                    category: {
+                                        type: Type.STRING,
+                                        description: '推測された勘定科目名',
+                                        enum: [
+                                            '作業用衣料費', '荷造運賃手数料', '小農具費',
+                                            '租税公課', '種苗費', '肥料費', '農薬費', '諸材料費',
+                                            '修繕費', '動力光熱費', '小作料・賃借料', '雇人費',
+                                            '福利厚生費', '利子割引料', '通信費', '事務用品費',
+                                            '接待交際費', '雑費'
+                                        ]
+                                    },
+                                    aiComment: { type: Type.STRING, description: 'AIコメント。「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。長野税務署の特記科目（作業用衣料費・荷造運賃手数料・小農具費）に基づき判断した場合は、その旨を明記する。' },
+                                    is_asset: { type: Type.BOOLEAN, description: '10万円以上の固定資産候補の場合true' },
+                                    apportionment_required: { type: Type.BOOLEAN, description: 'ガソリン・電気・通信費等、按分が必要な場合true' },
+                                },
+                                required: ['itemName', 'amount', 'category', 'aiComment', 'is_asset', 'apportionment_required'],
+                            }
+                        }
                     },
-                    required: ['date', 'payee', 'amount', 'businessNumber', 'purchasedItems', 'category', 'paymentMethod'],
+                    required: ['header', 'items'],
                 },
                 temperature: 0.1,
             }
@@ -100,17 +156,32 @@ export async function analyzeReceipt(base64Image: string, mimeType: string): Pro
     const responseText = response.text || '{}';
     try {
         const aiRes = JSON.parse(responseText);
-        const data: ReceiptData = {
-            date: aiRes.date || '',
-            payee: aiRes.payee || '',
-            amount: aiRes.amount || 0,
-            businessNumber: aiRes.businessNumber || '',
-            purchasedItems: aiRes.purchasedItems || '',
-            category: aiRes.category || '消耗品費',
-            paymentMethod: aiRes.paymentMethod || '',
-            aiComment: aiRes.reason || ''
+        const result: AnalyzeReceiptResult = {
+            header: {
+                date: aiRes.header?.date || '',
+                payee: aiRes.header?.payee || '',
+                businessNumber: aiRes.header?.businessNumber || '',
+                paymentMethod: aiRes.header?.paymentMethod || '',
+            },
+            items: (aiRes.items || []).map((item: any) => ({
+                itemName: item.itemName || '',
+                amount: item.amount || 0,
+                category: item.category || '雑費',
+                aiComment: item.aiComment || '',
+                is_asset: item.is_asset ?? false,
+                apportionment_required: item.apportionment_required ?? false,
+            })),
         };
-        return data;
+        // itemsが空の場合はフォールバック
+        if (result.items.length === 0) {
+            result.items.push({
+                itemName: '（品目不明）',
+                amount: 0,
+                category: '雑費',
+                aiComment: '品目を読み取れませんでした。金額・科目を手動で修正してください。',
+            });
+        }
+        return result;
     } catch (e) {
         console.error('Failed to parse Gemini response:', responseText);
         throw new Error('Failed to parse receipt data from Gemini');

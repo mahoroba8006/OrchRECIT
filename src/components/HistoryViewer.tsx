@@ -24,6 +24,8 @@ export default function HistoryViewer() {
     const [isSearching, setIsSearching] = useState(false);
     const [editingRow, setEditingRow] = useState<number | null>(null);
     const [editForm, setEditForm] = useState<Partial<ReceiptRow & { oldDate: string }>>({});
+    const [currentPage, setCurrentPage] = useState(1);
+    const PAGE_SIZE = 10;
 
     const { data: session, status } = useSession();
 
@@ -49,6 +51,7 @@ export default function HistoryViewer() {
             const result = await res.json();
             if (result.success) {
                 setData(result.data.reverse());
+                setCurrentPage(1);
             } else {
                 toast.error('データの取得に失敗しました');
             }
@@ -83,6 +86,7 @@ export default function HistoryViewer() {
 
             if (result.success) {
                 setData(result.data.reverse());
+                setCurrentPage(1);
                 toast.success(`${result.data.length}件見つかりました`, { id: searchToast });
             } else {
                 throw new Error(result.error || '検索に失敗しました');
@@ -145,6 +149,9 @@ export default function HistoryViewer() {
         }
     };
 
+    const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+    const pagedData = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
     return (
         <div className="w-full mt-16 text-left">
             <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">読取履歴・AI検索</h3>
@@ -201,7 +208,7 @@ export default function HistoryViewer() {
                                     </td>
                                 </tr>
                             ) : (
-                                data.map((row) => {
+                                pagedData.map((row) => {
                                     const isEditing = editingRow === row.rowIndex;
                                     return (
                                         <tr key={row.rowIndex} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
@@ -325,6 +332,45 @@ export default function HistoryViewer() {
                     </table>
                 </div>
             </div>
+
+            {/* ページネーション */}
+            {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                    <button
+                        onClick={() => setCurrentPage((p: number) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                        ← 前へ
+                    </button>
+                    <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${page === currentPage
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage((p: number) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                        次へ →
+                    </button>
+                </div>
+            )}
+            {data.length > 0 && (
+                <p className="mt-3 text-center text-xs text-slate-400">
+                    全 {data.length} 件中 {(currentPage - 1) * PAGE_SIZE + 1}〜{Math.min(currentPage * PAGE_SIZE, data.length)} 件を表示
+                </p>
+            )}
         </div>
     );
 }
