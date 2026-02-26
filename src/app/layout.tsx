@@ -9,6 +9,15 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AgriRecit',
   description: 'AI-powered receipt tracking with Gemini and Google Drive',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
+  appleWebApp: {
+    title: 'AgriRecit',
+    statusBarStyle: 'default',
+    capable: true,
+  }
 };
 
 export default function RootLayout({
