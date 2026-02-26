@@ -181,16 +181,26 @@ export default function HistoryViewer() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-600 min-w-[800px] md:table-fixed">
+                        <colgroup>
+                            <col className="w-auto md:w-[11%]" />
+                            <col className="w-[140px] md:w-[14%]" />
+                            <col className="w-[220px] md:w-[24%]" />
+                            <col className="w-auto md:w-[10%]" />
+                            <col className="w-auto md:w-[8%]" />
+                            <col className="w-auto md:w-[9%]" />
+                            <col className="w-[85px] md:w-[7%]" />
+                            <col className="w-auto md:w-[9%]" />
+                        </colgroup>
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
-                                <th className="px-2 py-3 whitespace-nowrap">日付</th>
-                                <th className="px-2 py-3 min-w-[140px]">支払先</th>
-                                <th className="px-2 py-3 min-w-[220px]">品目</th>
-                                <th className="px-2 py-3 whitespace-nowrap">金額</th>
-                                <th className="px-2 py-3 min-w-[60px]">科目</th>
-                                <th className="px-2 py-3 min-w-[70px]">支払方法</th>
-                                <th className="px-2 py-3 w-[85px] min-w-[85px] text-xs">事業者番号</th>
-                                <th className="px-2 py-3 w-16 text-left">操作</th>
+                                <th className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">日付</th>
+                                <th className="px-2 py-3 text-xs sm:text-sm">支払先</th>
+                                <th className="px-2 py-3 text-xs sm:text-sm">品目</th>
+                                <th className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">金額</th>
+                                <th className="px-2 py-3 text-xs sm:text-sm">科目</th>
+                                <th className="px-2 py-3 text-xs sm:text-sm">支払方法</th>
+                                <th className="px-2 py-3 text-xs">事業者番号</th>
+                                <th className="px-2 py-3 text-xs sm:text-sm text-left">操作</th>
                             </tr>
                         </thead>
                         <tbody>
