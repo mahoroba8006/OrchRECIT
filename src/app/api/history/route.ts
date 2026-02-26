@@ -27,7 +27,7 @@ export async function PUT(req: Request) {
         }
 
         const body = await req.json();
-        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink, oldDate } = body;
+        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink, oldDate, aiComment } = body;
 
         if (!rowIndex) {
             return NextResponse.json({ error: 'rowIndex is required' }, { status: 400 });
@@ -35,8 +35,18 @@ export async function PUT(req: Request) {
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
 
-        // スプレッドシートの行を更新
-        const values = [date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink];
+        // スプレッドシートの行を更新 (新しい列の順番: 日付,支払先,品目,金額,科目,支払方法,事業者番号,リンク,AIコメント)
+        const values = [
+            date,
+            payee,
+            purchasedItems,
+            amount,
+            category,
+            paymentMethod,
+            businessNumber,
+            driveLink,
+            aiComment || ''
+        ];
         await updateRowInSheet(session.accessToken as string, workspace.spreadsheetId, rowIndex, values);
 
         // 日付が変更された場合、同じ driveLink を持つ他の行も日付を同期してから Drive 上のファイルを新フォルダへ移動・リネーム
@@ -53,12 +63,13 @@ export async function PUT(req: Request) {
                     const sharedValues = [
                         date, // 新しい日付に変更
                         sharedRow.payee,
-                        sharedRow.amount,
-                        sharedRow.businessNumber,
                         sharedRow.purchasedItems,
+                        sharedRow.amount,
                         sharedRow.category,
                         sharedRow.paymentMethod,
-                        sharedRow.driveLink
+                        sharedRow.businessNumber,
+                        sharedRow.driveLink,
+                        sharedRow.aiComment || ''
                     ];
                     await updateRowInSheet(session.accessToken as string, workspace.spreadsheetId, sharedRow.rowIndex, sharedValues);
                     console.log(`Synced date for shared row ${sharedRow.rowIndex} to ${date}`);

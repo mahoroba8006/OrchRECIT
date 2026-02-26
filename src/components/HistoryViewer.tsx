@@ -180,23 +180,23 @@ export default function HistoryViewer() {
             {/* List */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600">
+                    <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
-                                <th className="px-2 py-3">日付</th>
-                                <th className="px-2 py-3">支払先</th>
-                                <th className="px-2 py-3">金額</th>
-                                <th className="px-2 py-3">事業者番号</th>
-                                <th className="px-2 py-3">品目</th>
-                                <th className="px-2 py-3">科目</th>
-                                <th className="px-2 py-3">支払方法</th>
-                                <th className="px-2 py-3 text-center whitespace-nowrap">操作</th>
+                                <th className="px-3 py-3 w-28">日付</th>
+                                <th className="px-3 py-3 w-40">支払先</th>
+                                <th className="px-3 py-3 w-40">品目</th>
+                                <th className="px-3 py-3 w-28">金額</th>
+                                <th className="px-3 py-3 w-28">科目</th>
+                                <th className="px-3 py-3 w-32">支払方法</th>
+                                <th className="px-3 py-3 w-36">事業者番号</th>
+                                <th className="px-3 py-3 w-32 text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                                         <Loader2 className="animate-spin mx-auto mb-2" size={24} />
                                         データを読み込んでいます...
                                     </td>
@@ -212,7 +212,7 @@ export default function HistoryViewer() {
                                     const isEditing = editingRow === row.rowIndex;
                                     return (
                                         <tr key={row.rowIndex} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">
+                                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm">
                                                 {isEditing ? (
                                                     <input
                                                         type="date"
@@ -222,7 +222,7 @@ export default function HistoryViewer() {
                                                     />
                                                 ) : row.date}
                                             </td>
-                                            <td className="px-2 py-3 font-medium text-slate-800 break-words min-w-[100px]">
+                                            <td className="px-3 py-3 font-medium text-slate-800 break-words">
                                                 {isEditing ? (
                                                     <input
                                                         className="w-full p-1 border rounded"
@@ -231,7 +231,16 @@ export default function HistoryViewer() {
                                                     />
                                                 ) : row.payee}
                                             </td>
-                                            <td className="px-2 py-3 font-semibold text-slate-800 whitespace-nowrap">
+                                            <td className="px-3 py-3 text-slate-600 break-words">
+                                                {isEditing ? (
+                                                    <input
+                                                        className="w-full p-1 border rounded"
+                                                        value={editForm.purchasedItems || ''}
+                                                        onChange={e => setEditForm({ ...editForm, purchasedItems: e.target.value })}
+                                                    />
+                                                ) : row.purchasedItems}
+                                            </td>
+                                            <td className="px-3 py-3 font-semibold text-slate-800 whitespace-nowrap">
                                                 {isEditing ? (
                                                     <input
                                                         type="number"
@@ -243,25 +252,7 @@ export default function HistoryViewer() {
                                                     row.amount ? `¥${parseInt(row.amount.replace(/,/g, '')).toLocaleString()}` : ''
                                                 )}
                                             </td>
-                                            <td className="px-2 py-3 text-slate-700 break-all min-w-[100px] text-xs sm:text-sm">
-                                                {isEditing ? (
-                                                    <input
-                                                        className="w-full p-1 border rounded"
-                                                        value={editForm.businessNumber || ''}
-                                                        onChange={e => setEditForm({ ...editForm, businessNumber: e.target.value })}
-                                                    />
-                                                ) : row.businessNumber}
-                                            </td>
-                                            <td className="px-2 py-3 text-slate-600 break-words min-w-[120px]">
-                                                {isEditing ? (
-                                                    <input
-                                                        className="w-full p-1 border rounded"
-                                                        value={editForm.purchasedItems || ''}
-                                                        onChange={e => setEditForm({ ...editForm, purchasedItems: e.target.value })}
-                                                    />
-                                                ) : row.purchasedItems}
-                                            </td>
-                                            <td className="px-2 py-3 w-[5.5rem] min-w-[5.5rem] max-w-[5.5rem] whitespace-normal">
+                                            <td className="px-3 py-3 whitespace-normal">
                                                 {isEditing ? (
                                                     <input
                                                         className="w-full p-1 border rounded"
@@ -269,12 +260,12 @@ export default function HistoryViewer() {
                                                         onChange={e => setEditForm({ ...editForm, category: e.target.value })}
                                                     />
                                                 ) : (
-                                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm break-words inline-block w-full text-center">
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm break-words inline-block text-center whitespace-nowrap">
                                                         {row.category}
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-2 py-3 text-xs sm:text-sm">
+                                            <td className="px-3 py-3 text-xs sm:text-sm">
                                                 {isEditing ? (
                                                     <input
                                                         className="w-full p-1 border rounded"
@@ -284,7 +275,16 @@ export default function HistoryViewer() {
                                                     />
                                                 ) : row.paymentMethod}
                                             </td>
-                                            <td className="px-2 py-3 text-center whitespace-nowrap">
+                                            <td className="px-3 py-3 text-slate-700 break-all text-xs sm:text-sm">
+                                                {isEditing ? (
+                                                    <input
+                                                        className="w-full p-1 border rounded"
+                                                        value={editForm.businessNumber || ''}
+                                                        onChange={e => setEditForm({ ...editForm, businessNumber: e.target.value })}
+                                                    />
+                                                ) : row.businessNumber}
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap">
                                                 {isEditing ? (
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button onClick={saveEdit} className="p-1.5 text-green-600 bg-green-50 rounded-md hover:bg-green-100" title="保存">
@@ -349,8 +349,8 @@ export default function HistoryViewer() {
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
                                 className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${page === currentPage
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
                                 {page}

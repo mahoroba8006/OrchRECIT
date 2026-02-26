@@ -90,11 +90,11 @@ export async function POST(req: Request) {
             await appendRowToSheet(session.accessToken as string, workspace.spreadsheetId, [
                 headerData.date || '',
                 headerData.payee || '',
-                itemData.amount ? itemData.amount.toString() : '',
-                headerData.businessNumber || '',
                 itemData.itemName || '',
+                itemData.amount ? itemData.amount.toString() : '',
                 itemData.category || '',
                 headerData.paymentMethod || '',
+                headerData.businessNumber || '',
                 driveLink || '',
                 itemData.aiComment || '',
             ]);

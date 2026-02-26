@@ -90,7 +90,7 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
       spreadsheetId,
       range: 'A1:I1',
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [['日付', '支払先', '金額', '事業者番号', '品目', '科目', '支払方法', '原本画像リンク', 'AIコメント']] }
+      requestBody: { values: [['日付', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '原本画像リンク', 'AIコメント']] }
     });
   }
 
@@ -129,11 +129,11 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
       rowIndex: index + 1,
       date: row[0] || '',
       payee: row[1] || '',
-      amount: row[2] || '',
-      businessNumber: row[3] || '',
-      purchasedItems: row[4] || '',
-      category: row[5] || '',
-      paymentMethod: row[6] || '',
+      purchasedItems: row[2] || '',
+      amount: row[3] || '',
+      category: row[4] || '',
+      paymentMethod: row[5] || '',
+      businessNumber: row[6] || '',
       driveLink: row[7] || '',
       aiComment: row[8] || '',
     };
