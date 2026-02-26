@@ -183,13 +183,13 @@ export default function HistoryViewer() {
                     <table className="w-full text-left text-sm text-slate-600 table-fixed">
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
-                                <th className="px-2 py-3 w-[11%] text-xs sm:text-sm">日付</th>
+                                <th className="px-2 py-3 w-[12%] text-xs sm:text-sm">日付</th>
                                 <th className="px-2 py-3 w-[16%] text-xs sm:text-sm">支払先</th>
-                                <th className="px-2 py-3 w-[20%] text-xs sm:text-sm">品目</th>
+                                <th className="px-2 py-3 w-[22%] text-xs sm:text-sm">品目</th>
                                 <th className="px-2 py-3 w-[10%] text-xs sm:text-sm">金額</th>
-                                <th className="px-2 py-3 w-[9%] text-xs sm:text-sm">科目</th>
+                                <th className="px-2 py-3 w-[10%] text-xs sm:text-sm">科目</th>
                                 <th className="px-2 py-3 w-[11%] text-xs sm:text-sm">支払方法</th>
-                                <th className="px-2 py-3 w-[12%] text-xs">事業者番号</th>
+                                <th className="px-2 py-3 w-[8%] text-xs">事業者番号</th>
                                 <th className="px-2 py-3 w-[11%] text-center text-xs sm:text-sm">操作</th>
                             </tr>
                         </thead>
@@ -212,7 +212,7 @@ export default function HistoryViewer() {
                                     const isEditing = editingRow === row.rowIndex;
                                     return (
                                         <tr key={row.rowIndex} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-2 py-3 text-xs sm:text-sm break-all">
+                                            <td className="px-2 py-3 text-xs sm:text-sm whitespace-nowrap">
                                                 {isEditing ? (
                                                     <input
                                                         type="date"
