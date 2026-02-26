@@ -185,12 +185,12 @@ export default function HistoryViewer() {
                             <tr>
                                 <th className="px-2 py-3 whitespace-nowrap">日付</th>
                                 <th className="px-2 py-3 min-w-[140px]">支払先</th>
-                                <th className="px-2 py-3 min-w-[160px]">品目</th>
+                                <th className="px-2 py-3 min-w-[220px]">品目</th>
                                 <th className="px-2 py-3 whitespace-nowrap">金額</th>
-                                <th className="px-2 py-3 whitespace-nowrap">科目</th>
-                                <th className="px-2 py-3 whitespace-nowrap">支払方法</th>
+                                <th className="px-2 py-3 min-w-[60px]">科目</th>
+                                <th className="px-2 py-3 min-w-[70px]">支払方法</th>
                                 <th className="px-2 py-3 w-[85px] min-w-[85px] text-xs">事業者番号</th>
-                                <th className="px-2 py-3 w-20 text-center">操作</th>
+                                <th className="px-2 py-3 w-16 text-left">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -284,9 +284,9 @@ export default function HistoryViewer() {
                                                     />
                                                 ) : row.businessNumber}
                                             </td>
-                                            <td className="px-2 py-3 text-center whitespace-nowrap">
+                                            <td className="px-2 py-3 align-middle whitespace-nowrap">
                                                 {isEditing ? (
-                                                    <div className="flex items-center justify-center gap-2">
+                                                    <div className="flex items-center justify-start gap-1">
                                                         <button onClick={saveEdit} className="p-1.5 text-green-600 bg-green-50 rounded-md hover:bg-green-100" title="保存">
                                                             <Check size={16} />
                                                         </button>
@@ -295,7 +295,7 @@ export default function HistoryViewer() {
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-center gap-2 transition-opacity opacity-70 hover:opacity-100">
+                                                    <div className="flex items-center justify-start gap-1 transition-opacity opacity-70 hover:opacity-100">
                                                         {row.driveLink && (
                                                             <a
                                                                 href={row.driveLink}
