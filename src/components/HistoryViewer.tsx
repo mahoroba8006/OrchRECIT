@@ -180,17 +180,17 @@ export default function HistoryViewer() {
             {/* List */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600 table-fixed">
+                    <table className="w-full text-left text-sm text-slate-600 min-w-[800px] md:table-fixed">
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
-                                <th className="px-2 py-3 w-[12%] text-xs sm:text-sm">日付</th>
-                                <th className="px-2 py-3 w-[16%] text-xs sm:text-sm">支払先</th>
-                                <th className="px-2 py-3 w-[22%] text-xs sm:text-sm">品目</th>
-                                <th className="px-2 py-3 w-[10%] text-xs sm:text-sm">金額</th>
-                                <th className="px-2 py-3 w-[10%] text-xs sm:text-sm">科目</th>
-                                <th className="px-2 py-3 w-[11%] text-xs sm:text-sm">支払方法</th>
-                                <th className="px-2 py-3 w-[8%] text-xs">事業者番号</th>
-                                <th className="px-2 py-3 w-[11%] text-center text-xs sm:text-sm">操作</th>
+                                <th className="px-2 py-3 whitespace-nowrap">日付</th>
+                                <th className="px-2 py-3 min-w-[140px]">支払先</th>
+                                <th className="px-2 py-3 min-w-[160px]">品目</th>
+                                <th className="px-2 py-3 whitespace-nowrap">金額</th>
+                                <th className="px-2 py-3 whitespace-nowrap">科目</th>
+                                <th className="px-2 py-3 whitespace-nowrap">支払方法</th>
+                                <th className="px-2 py-3 w-[85px] min-w-[85px] text-xs">事業者番号</th>
+                                <th className="px-2 py-3 w-20 text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -260,7 +260,7 @@ export default function HistoryViewer() {
                                                         onChange={e => setEditForm({ ...editForm, category: e.target.value })}
                                                     />
                                                 ) : (
-                                                    <span className="px-1 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm break-words inline-block text-center w-full">
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm whitespace-nowrap">
                                                         {row.category}
                                                     </span>
                                                 )}
@@ -275,7 +275,7 @@ export default function HistoryViewer() {
                                                     />
                                                 ) : row.paymentMethod}
                                             </td>
-                                            <td className="px-2 py-3 text-slate-700 break-all text-xs">
+                                            <td className="px-2 py-3 text-slate-700 break-all text-xs w-[85px] min-w-[85px] max-w-[85px]">
                                                 {isEditing ? (
                                                     <input
                                                         className="w-full p-1 border rounded"
