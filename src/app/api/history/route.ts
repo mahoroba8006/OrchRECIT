@@ -39,9 +39,32 @@ export async function PUT(req: Request) {
         const values = [date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink];
         await updateRowInSheet(session.accessToken as string, workspace.spreadsheetId, rowIndex, values);
 
-        // 日付が変更された場合、Drive上のファイルを新フォルダへ移動・リネーム
+        // 日付が変更された場合、同じ driveLink を持つ他の行も日付を同期してから Drive 上のファイルを新フォルダへ移動・リネーム
         if (oldDate && date && date !== oldDate && driveLink) {
             try {
+                // スプレッドシートの全データを取得してチェック
+                const allRows = await getRowsFromSheet(session.accessToken as string, workspace.spreadsheetId);
+
+                // 同じ driveLink を持つ他の行 (今回更新対象以外の行) を抽出
+                const sharedRows = allRows.filter(row => row.rowIndex !== rowIndex && row.driveLink === driveLink);
+
+                // 抽出された他の行も新しい日付に更新
+                for (const sharedRow of sharedRows) {
+                    const sharedValues = [
+                        date, // 新しい日付に変更
+                        sharedRow.payee,
+                        sharedRow.amount,
+                        sharedRow.businessNumber,
+                        sharedRow.purchasedItems,
+                        sharedRow.category,
+                        sharedRow.paymentMethod,
+                        sharedRow.driveLink
+                    ];
+                    await updateRowInSheet(session.accessToken as string, workspace.spreadsheetId, sharedRow.rowIndex, sharedValues);
+                    console.log(`Synced date for shared row ${sharedRow.rowIndex} to ${date}`);
+                }
+
+                // Drive 上のファイルを新しい日付フォルダへ移動・リネーム
                 const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
                 if (match && match[1]) {
                     const fileId = match[1];
@@ -55,8 +78,8 @@ export async function PUT(req: Request) {
                     console.log(`Drive file moved to new date folder: ${date}`);
                 }
             } catch (err) {
-                console.error('Drive file move failed (sheet update succeeded):', err);
-                // ファイル移動が失敗しても、スプレッドシート更新は成功済みのため続行
+                console.error('Date sync or Drive file move failed (main sheet update succeeded):', err);
+                // ファイル移動が失敗しても、メインのスプレッドシート行更新は成功済みのため続行
             }
         }
 
