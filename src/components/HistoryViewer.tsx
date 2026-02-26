@@ -184,9 +184,9 @@ export default function HistoryViewer() {
                         <colgroup>
                             <col style={{ width: '11%' }} />
                             <col style={{ width: '14%' }} />
-                            <col style={{ width: '24%' }} />
+                            <col style={{ width: '21%' }} />
                             <col style={{ width: '10%' }} />
-                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '11%' }} />
                             <col style={{ width: '9%' }} />
                             <col style={{ width: '7%' }} />
                             <col style={{ width: '9%' }} />
