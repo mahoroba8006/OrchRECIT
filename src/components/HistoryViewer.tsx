@@ -182,14 +182,14 @@ export default function HistoryViewer() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-600 min-w-[800px] md:table-fixed">
                         <colgroup>
-                            <col className="w-auto md:w-[11%]" />
-                            <col className="w-[140px] md:w-[14%]" />
-                            <col className="w-[220px] md:w-[24%]" />
-                            <col className="w-auto md:w-[10%]" />
-                            <col className="w-auto md:w-[8%]" />
-                            <col className="w-auto md:w-[9%]" />
-                            <col className="w-[85px] md:w-[7%]" />
-                            <col className="w-auto md:w-[9%]" />
+                            <col style={{ width: '11%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '24%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '9%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '9%' }} />
                         </colgroup>
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
@@ -270,7 +270,7 @@ export default function HistoryViewer() {
                                                         onChange={e => setEditForm({ ...editForm, category: e.target.value })}
                                                     />
                                                 ) : (
-                                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm whitespace-nowrap">
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-xs sm:text-sm break-words inline-block w-full text-center">
                                                         {row.category}
                                                     </span>
                                                 )}
