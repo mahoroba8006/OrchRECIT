@@ -84,22 +84,32 @@ export async function DELETE(req: Request) {
 
         const rowIndex = parseInt(rowIndexStr, 10);
 
-        // Google Drive から画像ファイルを削除する
+        const workspace = await setupUserWorkspace(session.accessToken as string);
+
+        // Google Drive から画像ファイルを削除する前に、他に同じリンクが存在しないかチェックする
         if (driveLink) {
             try {
-                // driveLink の形式 (例: https://drive.google.com/file/d/1ABCDEFG/view) からIDを抽出
-                const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
-                if (match && match[1]) {
-                    const fileId = match[1];
-                    console.log(`Deleting Drive file with ID: ${fileId}`);
-                    await deleteFileFromDrive(session.accessToken as string, fileId);
+                // スプレッドシートの全データを取得してチェック
+                const allRows = await getRowsFromSheet(session.accessToken as string, workspace.spreadsheetId);
+
+                // 削除対象の行「以外」で、同じ driveLink を持つ行が存在するか確認
+                const isSharedLink = allRows.some(row => row.rowIndex !== rowIndex && row.driveLink === driveLink);
+
+                if (isSharedLink) {
+                    console.log(`Drive file deletion skipped: The file is still referenced by other rows in the spreadsheet.`);
+                } else {
+                    // driveLink の形式 (例: https://drive.google.com/file/d/1ABCDEFG/view) からIDを抽出
+                    const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+                    if (match && match[1]) {
+                        const fileId = match[1];
+                        console.log(`Deleting Drive file with ID: ${fileId} as it has no other references.`);
+                        await deleteFileFromDrive(session.accessToken as string, fileId);
+                    }
                 }
             } catch (err) {
-                console.error("Failed to delete from Drive, but proceeding with Sheet deletion:", err);
+                console.error("Failed to check or delete from Drive, but proceeding with Sheet deletion:", err);
             }
         }
-
-        const workspace = await setupUserWorkspace(session.accessToken as string);
 
         // スプレッドシートの行をクリアする
         await deleteRowInSheet(session.accessToken as string, workspace.spreadsheetId, rowIndex);
