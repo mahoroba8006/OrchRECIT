@@ -10,7 +10,7 @@ import { AnalyzeReceiptResult, ReceiptItem, ReceiptHeader } from '@/lib/gemini';
 export default function Uploader() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analyzingMode, setAnalyzingMode] = useState<'total' | 'details' | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // 解析結果（品目リスト）
@@ -88,14 +88,15 @@ export default function Uploader() {
     };
 
     // ── STEP 1: AI解析のみ ───────────────────────────────────────────────
-    const handleAnalyze = async () => {
+    const handleAnalyze = async (mode: 'total' | 'details') => {
         if (!file) return;
-        setIsAnalyzing(true);
+        setAnalyzingMode(mode);
         const loadingToast = toast.loading('AIでレシートを解析しています...');
         try {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('analyzeOnly', 'true');
+            formData.append('mode', mode);
 
             const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
             const data = await res.json();
@@ -123,7 +124,7 @@ export default function Uploader() {
                 toast.error(msg, { id: loadingToast });
             }
         } finally {
-            setIsAnalyzing(false);
+            setAnalyzingMode(null);
         }
     };
 
@@ -286,7 +287,7 @@ export default function Uploader() {
                                 <FileImage className="text-blue-500" size={20} />
                                 選択された画像
                             </h3>
-                            {!isAnalyzing && !analyzeResult && (
+                            {!analyzingMode && !analyzeResult && (
                                 <button onClick={resetAll} className="text-sm text-slate-500 hover:text-slate-800">
                                     キャンセル
                                 </button>
@@ -302,17 +303,40 @@ export default function Uploader() {
 
                             {/* ── 解析前 ── */}
                             {!analyzeResult && (
-                                <button
-                                    onClick={handleAnalyze}
-                                    disabled={isAnalyzing}
-                                    className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-                                >
-                                    {isAnalyzing ? (
-                                        <><Loader2 className="animate-spin" size={20} />AI解析中...</>
-                                    ) : (
-                                        <><UploadCloud size={20} />この画像を解析</>
-                                    )}
-                                </button>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => handleAnalyze('total')}
+                                        disabled={analyzingMode !== null}
+                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all shadow-sm ${analyzingMode === 'total'
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                                                : analyzingMode === 'details'
+                                                    ? 'bg-blue-200 text-white cursor-not-allowed opacity-70'
+                                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                                            }`}
+                                    >
+                                        {analyzingMode === 'total' ? (
+                                            <><Loader2 className="animate-spin" size={20} />AI解析中...</>
+                                        ) : (
+                                            <><UploadCloud size={20} />合計額で取込</>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => handleAnalyze('details')}
+                                        disabled={analyzingMode !== null}
+                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all shadow-sm ${analyzingMode === 'details'
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                                                : analyzingMode === 'total'
+                                                    ? 'bg-blue-200 text-white cursor-not-allowed opacity-70'
+                                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                                            }`}
+                                    >
+                                        {analyzingMode === 'details' ? (
+                                            <><Loader2 className="animate-spin" size={20} />AI解析中...</>
+                                        ) : (
+                                            <><UploadCloud size={20} />明細で取込</>
+                                        )}
+                                    </button>
+                                </div>
                             )}
 
                             {/* ── 全件完了 ── */}

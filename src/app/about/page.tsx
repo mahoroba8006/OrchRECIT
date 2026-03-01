@@ -20,6 +20,22 @@ export default function AboutPage() {
                 </div>
 
                 <div className="space-y-8">
+                    {/* 注意事項 */}
+                    <section className="bg-amber-50 p-6 sm:p-8 rounded-2xl shadow-sm border border-amber-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Info className="text-amber-600" size={24} />
+                            <h2 className="text-xl font-bold text-slate-800">はじめに（注意事項）</h2>
+                        </div>
+                        <p className="text-sm sm:text-base text-slate-700 leading-relaxed mb-4">
+                            本アプリのご利用にあたり、以下の点につきましてあらかじめご了承ください。
+                        </p>
+                        <ul className="list-disc list-inside space-y-2 text-slate-700 ml-2 text-sm sm:text-base">
+                            <li>レシートの読み込み結果は、撮影時の明るさやピント、しわなどの状態によって誤りや欠落が生じる場合があります。</li>
+                            <li>読み込んだレシートのデータは、最初から「農業の経費」であることを前提として処理・判定されます。</li>
+                            <li>AIによる科目の自動判定は、一般的な知識や傾向をもとに行っております。お客様の実際の申告内容や用途によっては、最適な科目と異なる場合があります。</li>
+                            <li><strong>読み取り後の金額や科目につきましては、必ずご自身で内容をご確認いただき、必要に応じて修正してからご利用ください。</strong></li>
+                        </ul>
+                    </section>
                     {/* 読取 */}
                     <section className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
                         <div className="flex items-center gap-3 mb-4">
@@ -30,11 +46,17 @@ export default function AboutPage() {
                         </div>
                         <ul className="list-disc list-inside space-y-2 text-slate-600 ml-2">
                             <li>トップ画面のエリアから、レシートや領収書の画像を選択するか、カメラで撮影します。</li>
-                            <li>画像を選択すると自動で最適化（圧縮）され、AIが内容を読み取ります。</li>
-                            <li>**【農業特化仕様】** レシートの内容から、農業用の青色申告決算書に準拠した勘定科目（種苗費、肥料費、農薬衛生費など）をAIが自動で判定します。</li>
-                            <li>農薬や肥料の銘柄・成分名なども正確に抽出するため、後から栽培履歴等の管理に活用しやすくなっています。</li>
-                            <li>読み取りが完了すると該当データが画面に表示され、同時にGoogle Driveとスプレッドシートへ自動保存されます。</li>
-                            <li>過去と全く同じ内容の支払いが見つかった場合は、重複アラートが表示されて二重登録を防止します。</li>
+                            <li>画像を選択すると自動で最適化され、読み取りの準備が完了します。用途に応じて<strong>「合計額で取込」</strong>か<strong>「明細で取込」</strong>を選択してください。</li>
+                            <ul className="list-disc list-inside ml-6 mt-2 space-y-1 text-sm text-slate-500">
+                                <li><strong>合計額で取込:</strong> レシート1枚につき、合計金額を1件の品目として取り込みます（品目名は「〜など」となります）。</li>
+                                <li><strong>明細で取込:</strong> レシートに記載されている品目ごとに、複数件のデータとして取り込みます。</li>
+                            </ul>
+                            <li className="mt-2">
+                                このアプリは農業経営に特化した仕様です。レシートの内容から、農業用の青色申告決算書に準拠した勘定科目をAIが自動で推論・判定します。<br />
+                                単に科目を提示するだけでなく、「なぜその科目と判定したのか」という理由や、「農業経費とする際の注意点・ワンポイントアドバイス」も合わせて確認することができます。
+                            </li>
+                            <li>読み取った品目は1件ずつ内容を確認できます。AIからのアドバイスを参考に必要に応じて内容を修正し、「取込」または「破棄」を選択してください。</li>
+                            <li>「取込」を選択すると、該当データがGoogle Driveとスプレッドシートへ自動保存されます。</li>
                         </ul>
                     </section>
 
@@ -50,6 +72,7 @@ export default function AboutPage() {
                             <li>トップ画面下部の「読取履歴・AI検索」リストから、過去のデータを直接編集することができます。</li>
                             <li>各行の右端にある「編集アイコン（鉛筆マーク）」をクリックすると、その行の項目が入力フォームに切り替わります。</li>
                             <li>内容を自由に修正した後、緑色のチェックマークボタンを押すとスプレッドシートのデータが更新されます。</li>
+                            <li>また、スプレッドシートのデータを直接更新することも可能です。更新した内容はアプリの履歴画面にも反映されます。</li>
                         </ul>
                     </section>
 
