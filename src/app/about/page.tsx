@@ -48,7 +48,7 @@ export default function AboutPage() {
                             <li>トップ画面のエリアから、レシートや領収書の画像を選択するか、カメラで撮影します。</li>
                             <li>画像を選択すると自動で最適化され、読み取りの準備が完了します。用途に応じて<strong>「合計額で取込」</strong>か<strong>「明細で取込」</strong>を選択してください。</li>
                             <ul className="list-disc list-inside ml-6 mt-2 space-y-1 text-sm text-slate-500">
-                                <li><strong>合計額で取込:</strong> レシート1枚につき、合計金額を1件の品目として取り込みます（品目名は「〜など」となります）。</li>
+                                <li><strong>合計額で取込:</strong> レシート1枚につき、合計金額を1件の品目として取り込みます（品目名は、明細が1件の場合はその品目名、複数ある場合は「1件目の品目名＋など」となります）。</li>
                                 <li><strong>明細で取込:</strong> レシートに記載されている品目ごとに、複数件のデータとして取り込みます。</li>
                             </ul>
                             <li className="mt-2">
