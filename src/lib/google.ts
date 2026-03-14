@@ -1,17 +1,18 @@
-import { google } from 'googleapis';
-
+import { drive_v3 } from '@googleapis/drive';
+import { sheets_v4 } from '@googleapis/sheets';
+import { OAuth2Client } from 'google-auth-library';
 
 // OAuth用に動的にauthクライアントを生成する関数
 export function getGoogleClient(accessToken: string) {
-  const auth = new google.auth.OAuth2(
+  const oauth2Client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
-  auth.setCredentials({ access_token: accessToken });
+  oauth2Client.setCredentials({ access_token: accessToken });
 
   return {
-    drive: google.drive({ version: 'v3', auth }),
-    sheets: google.sheets({ version: 'v4', auth })
+    drive: new drive_v3.Drive({ auth: oauth2Client }),
+    sheets: new sheets_v4.Sheets({ auth: oauth2Client }),
   };
 }
 
