@@ -7,14 +7,14 @@ import AuthProvider from '@/components/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AgriRecit',
+  title: 'Orch.RECIT',
   description: 'AI-powered receipt tracking with Gemini and Google Drive',
   icons: {
     icon: '/icon.png',
     apple: '/icon.png',
   },
   appleWebApp: {
-    title: 'AgriRecit',
+    title: 'Orch.RECIT',
     statusBarStyle: 'default',
     capable: true,
   }

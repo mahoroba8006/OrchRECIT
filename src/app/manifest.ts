@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'AgriRecit',
-        short_name: 'AgriRecit',
+        name: 'Orch.RECIT',
+        short_name: 'Orch.RECIT',
         description: 'AI-powered receipt tracking with Gemini and Google Drive',
         start_url: '/',
         display: 'standalone',

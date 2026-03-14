@@ -18,9 +18,9 @@ export default async function Home() {
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/icon.png" alt="AgriRecit Logo" width={32} height={32} className="rounded-lg shadow-sm" />
+            <Image src="/icon.png" alt="Orch.RECIT Logo" width={32} height={32} className="rounded-lg shadow-sm" />
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">
-              AgriRecit
+              Orch.RECIT
             </h1>
           </div>
 

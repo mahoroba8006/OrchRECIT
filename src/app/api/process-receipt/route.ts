@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+
+export const runtime = 'edge';
+
 import { analyzeReceipt } from '@/lib/gemini';
 import {
     getFolderIdByName,
@@ -77,7 +80,21 @@ export async function POST(req: Request) {
 
                 const arrayBuffer = await file.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
-                const ext = file.name.split('.').pop() || 'jpg';
+                
+                // ファイル名から拡張子を取得、ない場合はMIMEタイプから推測、それでもなければjpg
+                let ext = 'jpg';
+                if (file.name && file.name !== 'blob') {
+                    const parts = file.name.split('.');
+                    if (parts.length > 1) {
+                        ext = parts.pop() || 'jpg';
+                    }
+                } else if (file.type) {
+                    const mimeExt = file.type.split('/')[1];
+                    if (mimeExt && mimeExt !== 'octet-stream') {
+                       ext = mimeExt === 'jpeg' ? 'jpg' : mimeExt;
+                    }
+                }
+                
                 const dateFormatted = `${year}${month}${day}`;
                 const safePayee = (headerData.payee || '').replace(/[\\/:*?"<>|\s]/g, '_');
                 const newFileName = `${dateFormatted}_${safePayee}.${ext}`;

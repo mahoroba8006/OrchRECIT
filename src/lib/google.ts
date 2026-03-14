@@ -69,10 +69,10 @@ export interface UserWorkspace {
 }
 
 export async function setupUserWorkspace(accessToken: string): Promise<UserWorkspace> {
-  // 1. Root folder 'AgriRecit'
-  let rootFolderId = await getFolderIdByName(accessToken, 'root', 'AgriRecit');
+  // 1. Root folder 'Orch.RECIT'
+  let rootFolderId = await getFolderIdByName(accessToken, 'root', 'Orch.RECIT');
   if (!rootFolderId) {
-    rootFolderId = await createFolder(accessToken, 'root', 'AgriRecit');
+    rootFolderId = await createFolder(accessToken, 'root', 'Orch.RECIT');
   }
 
   // 2. Spreadsheet '経費記録'
