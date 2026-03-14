@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Node.js ランタイムで動作（googleapisはEdge Runtime非対応）
+export const runtime = 'nodejs';
 
 import { analyzeReceipt } from '@/lib/gemini';
 import {
