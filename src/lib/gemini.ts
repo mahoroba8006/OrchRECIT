@@ -1,6 +1,13 @@
-    import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+// ビルド時に環境変数が無くてもエラーにならないよう、実行時に初期化する
+function getAI(): GoogleGenAI {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY が設定されていません');
+    }
+    return new GoogleGenAI({ apiKey });
+}
 
 /** レシートのヘッダー情報（1枚のレシートに共通） */
 export interface ReceiptHeader {
@@ -95,7 +102,7 @@ ${mode === 'total' ?
 
 export async function analyzeReceipt(base64Image: string, mimeType: string, mode: 'total' | 'details' = 'details'): Promise<AnalyzeReceiptResult> {
     const response = await withRetry(() =>
-        ai.models.generateContent({
+        getAI().models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [
                 {
@@ -194,7 +201,7 @@ export async function searchReceipts(query: string, rows: any[]): Promise<number
     const prompt = `経費データから「${query}」に合致する件の rowIndex を数値配列で返してください。\n例: [2, 5, 8]\nデータ:\n${JSON.stringify(rows)}`;
 
     const response = await withRetry(() =>
-        ai.models.generateContent({
+        getAI().models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
@@ -206,7 +213,7 @@ export async function searchReceipts(query: string, rows: any[]): Promise<number
                 }
             }
         })
-    );
+    ) as any;
 
     try {
         const text = response.text || '[]';
