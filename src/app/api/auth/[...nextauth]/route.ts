@@ -79,7 +79,8 @@ export const authOptions = {
             return session;
         }
     },
-    secret: process.env.NEXTAUTH_SECRET,
+    useSecureCookies: process.env.NEXTAUTH_URL?.startsWith("https://"),
+    secret: process.env.NEXTAUTH_URL ? process.env.NEXTAUTH_SECRET : "development-secret",
     debug: true,
 }
 
