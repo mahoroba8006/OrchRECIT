@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'standalone',
+  // Cloudflare Pages / OpenNext 向けの設定
+  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;
