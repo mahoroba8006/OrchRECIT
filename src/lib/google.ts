@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { Readable } from 'stream';
+
 
 // OAuth用に動的にauthクライアントを生成する関数
 export function getGoogleClient(accessToken: string) {
@@ -39,7 +39,14 @@ export async function createFolder(accessToken: string, parentId: string, folder
 export async function uploadFileToDrive(accessToken: string, folderId: string, fileName: string, mimeType: string, buffer: Buffer): Promise<string> {
   const { drive } = getGoogleClient(accessToken);
   const fileMetadata = { name: fileName, parents: [folderId] };
-  const media = { mimeType: mimeType, body: Readable.from(buffer) };
+
+  // Edge ランタイム対応のため、Buffer を Uint8Array / ArrayBuffer または Blob 相当に変換してボディにセットする
+  // Readable Stream の代わりに arrayBuffer を使用します
+  const media = {
+    mimeType: mimeType,
+    body: new Blob([new Uint8Array(buffer)], { type: mimeType }) as any
+  };
+
   const res = await drive.files.create({
     requestBody: fileMetadata,
     media: media,
