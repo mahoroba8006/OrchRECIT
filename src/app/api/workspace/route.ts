@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { setupUserWorkspace } from '@/lib/google';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { getAuthOptions } from "../auth/[...nextauth]/route";
 
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession(getAuthOptions());
         if (!session || !session.accessToken) {
             return NextResponse.json({ error: 'ログインが必要です' }, { status: 401 });
         }

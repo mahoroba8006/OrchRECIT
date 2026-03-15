@@ -1,4 +1,4 @@
-import NextAuth from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
 async function refreshAccessToken(token: any) {
@@ -39,7 +39,7 @@ async function refreshAccessToken(token: any) {
 }
 
 
-export const authOptions = {
+export const getAuthOptions = (): NextAuthOptions => ({
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -79,11 +79,22 @@ export const authOptions = {
             return session;
         }
     },
-    useSecureCookies: process.env.NEXTAUTH_URL?.startsWith("https://"),
-    secret: process.env.NEXTAUTH_URL ? process.env.NEXTAUTH_SECRET : "development-secret",
+    useSecureCookies: true,
+    secret: process.env.NEXTAUTH_SECRET || "development-secret",
     debug: true,
-}
+    cookies: {
+        sessionToken: {
+            name: `${process.env.NEXTAUTH_URL?.startsWith("https://") ? "__Secure-" : ""}next-auth.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NEXTAUTH_URL?.startsWith("https://") || true,
+            },
+        },
+    },
+})
 
-const handler = NextAuth(authOptions)
+const handler = (req: any, ctx: any) => NextAuth(req, ctx, getAuthOptions())
 
 export { handler as GET, handler as POST }
