@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getGoogleClient } from '@/lib/google';
+
+async function fetchGoogleAPI(url: string, accessToken: string) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }});
+    if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
+    return res.json();
+}
 
 export async function GET(req: Request) {
     const session = await auth();
@@ -9,24 +14,17 @@ export async function GET(req: Request) {
     }
 
     try {
-        const { drive } = getGoogleClient(session.accessToken as string);
+        const token = session.accessToken as string;
 
-        // 'Orch.RECIT' フォルダをすべて検索（ゴミ箱含む/含まないの全状況）
         const orchQuery = `name = 'Orch.RECIT' and mimeType = 'application/vnd.google-apps.folder'`;
-        const resOrch = await drive.files.list({ q: orchQuery, fields: 'files(id, name, trashed, parents)', spaces: 'drive' });
+        const resOrch = await fetchGoogleAPI(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(orchQuery)}&fields=files(id,name,trashed,parents)&spaces=drive`, token);
 
-        // 'agrirecit' フォルダをすべて検索
         const agriQuery = `name = 'agrirecit' and mimeType = 'application/vnd.google-apps.folder'`;
-        const resAgri = await drive.files.list({ q: agriQuery, fields: 'files(id, name, trashed, parents)', spaces: 'drive' });
-
-        // '経費記録' スプレッドシートをすべて検索
-        const sheetQuery = `name = '経費記録' and mimeType = 'application/vnd.google-apps.spreadsheet'`;
-        const resSheet = await drive.files.list({ q: sheetQuery, fields: 'files(id, name, trashed, parents)', spaces: 'drive' });
+        const resAgri = await fetchGoogleAPI(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(agriQuery)}&fields=files(id,name,trashed,parents)&spaces=drive`, token);
 
         return NextResponse.json({
-            orchRecitFolders: resOrch.data.files,
-            agrirecitFolders: resAgri.data.files,
-            spreadsheets: resSheet.data.files,
+            orchRecitFolders: resOrch.files,
+            agrirecitFolders: resAgri.files,
         });
 
     } catch (error: any) {
