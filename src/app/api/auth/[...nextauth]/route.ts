@@ -1,6 +1,9 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
+// Node.jsの完全なAPI（crypto等）を要求するNextAuth v4のためにランタイムを強制する
+export const runtime = 'nodejs';
+
 async function refreshAccessToken(token: any) {
     try {
         const url =
