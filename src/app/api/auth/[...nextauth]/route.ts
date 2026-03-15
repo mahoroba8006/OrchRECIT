@@ -39,11 +39,21 @@ async function refreshAccessToken(token: any) {
 }
 
 
-export const getAuthOptions = (): NextAuthOptions => ({
-    providers: [
-        GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+function getEnv(key: string): string {
+    if (typeof process !== 'undefined' && process.env[key]) return process.env[key] as string;
+    if (typeof globalThis !== 'undefined' && (globalThis as any).process?.env?.[key]) return (globalThis as any).process.env[key] as string;
+    return "";
+}
+
+export const getAuthOptions = (): NextAuthOptions => {
+    const nextAuthUrl = getEnv("NEXTAUTH_URL");
+    const isHttps = nextAuthUrl.startsWith("https://");
+    
+    return {
+        providers: [
+            GoogleProvider({
+                clientId: getEnv("GOOGLE_CLIENT_ID"),
+                clientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
             authorization: {
                 params: {
                     prompt: "consent",
@@ -79,21 +89,22 @@ export const getAuthOptions = (): NextAuthOptions => ({
             return session;
         }
     },
-    useSecureCookies: true,
-    secret: process.env.NEXTAUTH_SECRET || "development-secret",
-    debug: true,
-    cookies: {
-        sessionToken: {
-            name: `${process.env.NEXTAUTH_URL?.startsWith("https://") ? "__Secure-" : ""}next-auth.session-token`,
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NEXTAUTH_URL?.startsWith("https://") || true,
+        useSecureCookies: true,
+        secret: getEnv("NEXTAUTH_SECRET") || "development-secret",
+        debug: true,
+        cookies: {
+            sessionToken: {
+                name: `${isHttps ? "__Secure-" : ""}next-auth.session-token`,
+                options: {
+                    httpOnly: true,
+                    sameSite: "lax",
+                    path: "/",
+                    secure: true,
+                },
             },
         },
-    },
-})
+    }
+}
 
 const handler = (req: any, ctx: any) => NextAuth(req, ctx, getAuthOptions())
 
