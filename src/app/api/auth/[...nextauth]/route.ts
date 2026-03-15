@@ -48,50 +48,47 @@ function getEnv(key: string): string {
 export const getAuthOptions = (): NextAuthOptions => {
     const nextAuthUrl = getEnv("NEXTAUTH_URL");
     const isHttps = nextAuthUrl.startsWith("https://");
-    
+
     return {
         providers: [
             GoogleProvider({
                 clientId: getEnv("GOOGLE_CLIENT_ID"),
                 clientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
-            authorization: {
-                params: {
-                    prompt: "consent",
-                    access_type: "offline",
-                    response_type: "code",
-                    // Google DriveとGoogle Sheetsへのフルアクセス権限を要求するスコープ
-                    scope: "openid email profile https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
+                authorization: {
+                    params: {
+                        prompt: "consent",
+                        access_type: "offline",
+                        response_type: "code",
+                        scope: "openid email profile https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
+                    }
                 }
+            })
+        ],
+        callbacks: {
+            async jwt({ token, account }: { token: any, account: any }) {
+                if (account) {
+                    token.accessToken = account.access_token;
+                    token.refreshToken = account.refresh_token;
+                    token.expiresAt = account.expires_at * 1000;
+                    return token;
+                }
+                if (Date.now() < token.expiresAt) {
+                    return token;
+                }
+                return await refreshAccessToken(token);
+            },
+            async session({ session, token }: any) {
+                session.accessToken = token.accessToken;
+                session.error = token.error;
+                return session;
             }
-        })
-    ],
-    callbacks: {
-        async jwt({ token, account }: { token: any, account: any }) {
-            // 初回ログイン時
-            if (account) {
-                token.accessToken = account.access_token;
-                token.refreshToken = account.refresh_token;
-                token.expiresAt = account.expires_at * 1000;
-                return token;
-            }
-
-            // トークンの有効期限内であれば既存のトークンを返す
-            if (Date.now() < token.expiresAt) {
-                return token;
-            }
-
-            // 有効期限切れの場合はリフレッシュトークンを使って新しいアクセストークンを取得
-            return await refreshAccessToken(token);
         },
-        async session({ session, token }: any) {
-            session.accessToken = token.accessToken;
-            session.error = token.error;
-            return session;
-        }
-    },
         useSecureCookies: true,
         secret: getEnv("NEXTAUTH_SECRET") || "development-secret",
         debug: true,
+        session: {
+            strategy: "jwt",
+        },
         cookies: {
             sessionToken: {
                 name: `${isHttps ? "__Secure-" : ""}next-auth.session-token`,
