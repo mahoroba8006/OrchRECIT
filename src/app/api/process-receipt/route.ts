@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 
 // Node.js ランタイムで動作（googleapisはEdge Runtime非対応）
@@ -11,12 +12,10 @@ import {
     appendRowToSheet,
     setupUserWorkspace
 } from '@/lib/google';
-import { getServerSession } from "next-auth/next";
-import { getAuthOptions } from "../auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(getAuthOptions());
+        const session = await auth();
         if (!session || !session.accessToken) {
             return NextResponse.json({ error: 'ログインが必要です' }, { status: 401 });
         }

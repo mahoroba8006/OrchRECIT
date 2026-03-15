@@ -1,11 +1,10 @@
+import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 import { getRowsFromSheet, updateRowInSheet, deleteRowInSheet, deleteFileFromDrive, setupUserWorkspace, moveFileToDriveFolder } from '@/lib/google';
-import { getServerSession } from "next-auth/next";
-import { getAuthOptions } from "../auth/[...nextauth]/route";
 
 export async function GET() {
     try {
-        const session = await getServerSession(getAuthOptions());
+        const session = await auth();
         if (!session || !session.accessToken || session.error === "RefreshAccessTokenError") {
             return NextResponse.json({ error: 'ログインが必要です（セッション期限切れ）' }, { status: 401 });
         }
@@ -21,7 +20,7 @@ export async function GET() {
 
 export async function PUT(req: Request) {
     try {
-        const session = await getServerSession(getAuthOptions());
+        const session = await auth();
         if (!session || !session.accessToken) {
             return NextResponse.json({ error: 'ログインが必要です' }, { status: 401 });
         }
@@ -103,7 +102,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
-        const session = await getServerSession(getAuthOptions());
+        const session = await auth();
         if (!session || !session.accessToken) {
             return NextResponse.json({ error: 'ログインが必要です' }, { status: 401 });
         }

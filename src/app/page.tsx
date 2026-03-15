@@ -1,8 +1,7 @@
 import Uploader from '@/components/Uploader';
 import { Receipt, Search, History, LogOut, LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { getServerSession } from "next-auth/next";
-import { getAuthOptions } from "./api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import SignInButton from '@/components/SignInButton';
 import HistoryViewer from '@/components/HistoryViewer';
 import WorkspaceLinks from '@/components/WorkspaceLinks';
@@ -10,7 +9,7 @@ import WorkspaceLinks from '@/components/WorkspaceLinks';
 import Image from 'next/image';
 
 export default async function Home() {
-  const session = await getServerSession(getAuthOptions());
+  const session = await auth();
 
   return (
     <main className="min-h-screen pb-12">
