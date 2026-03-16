@@ -252,7 +252,7 @@ export default function Uploader() {
             <div className="flex justify-end mb-4">
                 <button onClick={() => setIsSettingsOpen(true)} className="flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors">
                     <Settings className="w-4 h-4 mr-2" />
-                    特記科目の設定
+                    科目判断のカスタマイズ
                 </button>
             </div>
             <AnimatePresence mode="wait">
@@ -272,7 +272,7 @@ export default function Uploader() {
                             <UploadCloud size={40} />
                         </div>
                         <h3 className="text-xl font-semibold text-slate-700 mb-2">
-                            レシートをドロップするか、クリックして選択
+                            レシートを撮影、選択、ドロップ
                         </h3>
                         <p className="text-sm text-slate-500 mb-6">
                             PNG, JPG, JPEG 等の画像形式に対応しています
@@ -282,17 +282,17 @@ export default function Uploader() {
                         <div className="flex gap-4 w-full justify-center">
                             <button
                                 type="button"
-                                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
-                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                            >
-                                <FileImage size={18} />端末から選択
-                            </button>
-                            <button
-                                type="button"
                                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 shadow-sm transition-all"
                                 onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
                             >
                                 <Camera size={18} />カメラで撮影
+                            </button>
+                            <button
+                                type="button"
+                                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
+                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                            >
+                                <FileImage size={18} />端末から選択
                             </button>
                         </div>
                     </motion.div>
@@ -582,7 +582,7 @@ export default function Uploader() {
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                 <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                                     <Settings className="text-slate-500 w-5 h-5" />
-                                    科目判断の優先事項・カスタマイズ
+                                    科目判断のカスタマイズ
                                 </h3>
                                 <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-slate-600">
                                     <X size={20} />
@@ -599,7 +599,7 @@ export default function Uploader() {
                                     maxLength={500}
                                     rows={7}
                                     className="w-full p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-slate-50 select-text"
-                                    placeholder={`例：\n・作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽など。\n・小農具費: 10万円未満の剪定バサミ等。\n・諸材料費: 果実袋、支柱、誘引紐など。`}
+                                    placeholder={`## 長野税務署 特記科目\n- 作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽、保護メガネなど。\n- 荷造運賃手数料: 発送用段ボール、緩衝材、送料に加え、JA等の「販売手数料」をここに含める。`}
                                 />
                                 <div className="text-right text-xs text-slate-400 mt-2">
                                     {customPrompt.length} / 500
