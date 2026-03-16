@@ -105,6 +105,7 @@ export interface UserWorkspace {
   rootFolderId: string;
   spreadsheetId: string;
   receiptsFolderId: string;
+  settingsFolderId: string;
 }
 
 export async function setupUserWorkspace(accessToken: string): Promise<UserWorkspace> {
@@ -150,10 +151,17 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     receiptsFolderId = await createFolder(accessToken, rootFolderId, '領収書');
   }
 
-  // 4. Ensure '設定' sheet exists
-  await ensureSettingsSheet(accessToken, spreadsheetId);
+  // 4. Settings folder 'settings'
+  let settingsFolderId = await getFolderIdByName(accessToken, rootFolderId, 'settings');
+  if (!settingsFolderId) {
+    settingsFolderId = await createFolder(accessToken, rootFolderId, 'settings');
+  }
 
-  return { rootFolderId, spreadsheetId, receiptsFolderId };
+  // (Optional) Old logic cleanup: No longer strictly need settings sheet, 
+  // but we keep ensureSettingsSheet for backward compatibility or data migration if needed.
+  // await ensureSettingsSheet(accessToken, spreadsheetId);
+
+  return { rootFolderId, spreadsheetId, receiptsFolderId, settingsFolderId };
 }
 
 async function ensureSettingsSheet(accessToken: string, spreadsheetId: string): Promise<void> {
@@ -185,33 +193,55 @@ async function ensureSettingsSheet(accessToken: string, spreadsheetId: string): 
     }
 }
 
-export async function getSettingsFromSheet(accessToken: string, spreadsheetId: string): Promise<Record<string, string>> {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A2:B10`;
+export async function getSettingsFromFile(accessToken: string, settingsFolderId: string): Promise<Record<string, string>> {
+    const query = `'${settingsFolderId}' in parents and name = 'config.json' and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&spaces=drive`;
+    const data = await fetchGoogleAPI(url, accessToken);
+    const files = data.files || [];
+    
+    if (files.length === 0) {
+        return {};
+    }
+
+    const fileId = files[0].id;
+    const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
     try {
-        const data = await fetchGoogleAPI(url, accessToken);
-        const rows = data.values || [];
-        const settings: Record<string, string> = {};
-        rows.forEach((row: any[]) => {
-            if (row[0]) settings[row[0]] = row[1] || '';
+        const res = await fetch(downloadUrl, {
+            headers: { Authorization: `Bearer ${accessToken}` }
         });
-        return settings;
+        if (!res.ok) return {};
+        return await res.json();
     } catch (e) {
-        console.error('Failed to get settings:', e);
+        console.error('Failed to parse settings JSON:', e);
         return {};
     }
 }
 
-export async function updateSettingsInSheet(accessToken: string, spreadsheetId: string, key: string, value: string): Promise<void> {
-    // We assume the key is in A2 for customPrompt for simplicity, 
-    // or we can search for it. Let's just use A2:B2 for customPrompt.
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A2:B2?valueInputOption=USER_ENTERED`;
-    await fetchGoogleAPI(url, accessToken, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            values: [[key, value]]
-        })
-    });
+export async function updateSettingsInFile(accessToken: string, settingsFolderId: string, settings: Record<string, string>): Promise<void> {
+    const query = `'${settingsFolderId}' in parents and name = 'config.json' and trashed = false`;
+    const listUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&spaces=drive`;
+    const listData = await fetchGoogleAPI(listUrl, accessToken);
+    const files = listData.files || [];
+    
+    const content = JSON.stringify(settings, null, 2);
+    const buffer = Buffer.from(content);
+
+    if (files.length > 0) {
+        // Update existing file
+        const fileId = files[0].id;
+        const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+        await fetch(uploadUrl, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: buffer
+        });
+    } else {
+        // Create new file
+        await uploadFileToDrive(accessToken, settingsFolderId, 'config.json', 'application/json', buffer);
+    }
 }
 
 export async function appendRowToSheet(accessToken: string, spreadsheetId: string, values: string[]): Promise<any> {

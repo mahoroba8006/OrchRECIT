@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+
+export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { getRowsFromSheet, setupUserWorkspace } from '@/lib/google';
 import { searchReceipts } from '@/lib/gemini';

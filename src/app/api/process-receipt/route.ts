@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 
-// Node.js ランタイムで動作（googleapisはEdge Runtime非対応）
-export const runtime = 'nodejs';
+// Cloudflare Pages (Edge Runtime) で動作させるため、edgeを指定
+export const runtime = 'edge';
 
 import { analyzeReceipt } from '@/lib/gemini';
 import {

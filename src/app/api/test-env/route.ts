@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 export async function GET(req: Request) {
     try {
         // process自体が存在しない可能生やエラーになる可能性を考慮

@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
-import { getSettingsFromSheet, updateSettingsInSheet, setupUserWorkspace } from '@/lib/google';
+import { setupUserWorkspace, getSettingsFromFile, updateSettingsInFile } from '@/lib/google';
+
+export const runtime = 'edge';
 
 export async function GET() {
     try {
@@ -10,7 +12,7 @@ export async function GET() {
         }
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
-        const settings = await getSettingsFromSheet(session.accessToken as string, workspace.spreadsheetId);
+        const settings = await getSettingsFromFile(session.accessToken as string, workspace.settingsFolderId);
 
         return NextResponse.json({ success: true, settings });
     } catch (error: any) {
@@ -32,7 +34,12 @@ export async function POST(req: Request) {
         }
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
-        await updateSettingsInSheet(session.accessToken as string, workspace.spreadsheetId, 'customPrompt', customPrompt);
+        
+        // Load current settings, update, and save back
+        const currentSettings = await getSettingsFromFile(session.accessToken as string, workspace.settingsFolderId);
+        currentSettings.customPrompt = customPrompt;
+        
+        await updateSettingsInFile(session.accessToken as string, workspace.settingsFolderId, currentSettings);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
@@ -40,3 +47,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message || '内部エラーが発生しました' }, { status: 500 });
     }
 }
+
