@@ -104,7 +104,7 @@ ${mode === 'total' ?
 export async function analyzeReceipt(base64Image: string, mimeType: string, mode: 'total' | 'details' = 'details', customPrompt: string = ''): Promise<AnalyzeReceiptResult> {
     const genAI = getAI();
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: {
@@ -200,7 +200,7 @@ export async function searchReceipts(query: string, rows: any[]): Promise<number
 
     const genAI = getAI();
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
