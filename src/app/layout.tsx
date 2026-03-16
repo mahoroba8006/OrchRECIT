@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Orch.RECIT',
   description: 'AI-powered receipt tracking with Gemini and Google Drive',
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: '/icon.png',
     apple: '/icon.png',
@@ -17,6 +18,15 @@ export const metadata: Metadata = {
     title: 'Orch.RECIT',
     statusBarStyle: 'default',
     capable: true,
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  other: {
+    'apple-touch-icon': '/icon.png',
   }
 };
 
