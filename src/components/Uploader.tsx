@@ -287,7 +287,7 @@ export default function Uploader() {
 
     return (
         <div className="w-full max-w-2xl mx-auto mt-8">
-            <div className="flex justify-end gap-3 mb-4">
+            <div className="flex justify-center gap-3 mb-4">
                 <Link
                     href="/about"
                     className="flex items-center text-sm text-slate-600 hover:text-blue-600 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
@@ -470,7 +470,7 @@ export default function Uploader() {
                                                 <Pencil size={18} />内容を修正
                                             </div>
                                             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 items-center text-sm">
-                                                <label className="text-slate-500 whitespace-nowrap">日付</label>
+                                                <label className="text-slate-500 whitespace-nowrap">購入日</label>
                                                 <input
                                                     type="date"
                                                     className={inputCls}

@@ -140,7 +140,7 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            values: [['日付', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '原本画像リンク', 'AIコメント']]
+            values: [['購入日', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '原本画像リンク', 'AIコメント']]
         })
     });
   }
@@ -326,20 +326,16 @@ export async function moveFileToDriveFolder(
   const ext = currentName.includes('.') ? currentName.split('.').pop() : 'jpg';
   const currentParents = (fileInfo.parents || []).join(',');
 
-  const [year, month, day] = newDate.split('-');
-  const yearMonthStr = `${year}${month}`;
-  const dateFormatted = `${year}${month}${day}`;
+  const [year] = newDate.split('-');
+  const dateFormatted = newDate.replace(/-/g, '');
 
   let yearFolderId = await getFolderIdByName(accessToken, receiptsFolderId, year);
   if (!yearFolderId) yearFolderId = await createFolder(accessToken, receiptsFolderId, year);
 
-  let yearMonthFolderId = await getFolderIdByName(accessToken, yearFolderId, yearMonthStr);
-  if (!yearMonthFolderId) yearMonthFolderId = await createFolder(accessToken, yearFolderId, yearMonthStr);
-
   const safePayee = newPayee.replace(/[\\/:*?"<>|\s]/g, '_');
   const newName = `${dateFormatted}_${safePayee}.${ext}`;
   
-  const updateUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${yearMonthFolderId}&removeParents=${currentParents}&fields=id`;
+  const updateUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${yearFolderId}&removeParents=${currentParents}&fields=id`;
   await fetchGoogleAPI(updateUrl, accessToken, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

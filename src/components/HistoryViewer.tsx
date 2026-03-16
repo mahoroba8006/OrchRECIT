@@ -193,7 +193,7 @@ export default function HistoryViewer() {
                         </colgroup>
                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                             <tr>
-                                <th className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">日付</th>
+                                <th className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">購入日</th>
                                 <th className="px-2 py-3 text-xs sm:text-sm">支払先</th>
                                 <th className="px-2 py-3 text-xs sm:text-sm">品目</th>
                                 <th className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm">金額</th>

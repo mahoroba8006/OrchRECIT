@@ -74,10 +74,6 @@ export async function POST(req: Request) {
                 if (!yearFolderId) {
                     yearFolderId = await createFolder(session.accessToken as string, workspace.receiptsFolderId, year);
                 }
-                let yearMonthFolderId = await getFolderIdByName(session.accessToken as string, yearFolderId, yearMonthStr);
-                if (!yearMonthFolderId) {
-                    yearMonthFolderId = await createFolder(session.accessToken as string, yearFolderId, yearMonthStr);
-                }
 
                 const arrayBuffer = await file.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
@@ -101,7 +97,8 @@ export async function POST(req: Request) {
                 const newFileName = `${dateFormatted}_${safePayee}.${ext}`;
 
                 console.log(`Uploading file (${newFileName})...`);
-                driveLink = await uploadFileToDrive(session.accessToken as string, yearMonthFolderId, newFileName, file.type, buffer);
+                // 年フォルダに直接アップロード
+                driveLink = await uploadFileToDrive(session.accessToken as string, yearFolderId, newFileName, file.type, buffer);
             }
 
             // スプレッドシートに1行追加
