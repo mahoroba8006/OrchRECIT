@@ -150,7 +150,68 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     receiptsFolderId = await createFolder(accessToken, rootFolderId, '領収書');
   }
 
+  // 4. Ensure '設定' sheet exists
+  await ensureSettingsSheet(accessToken, spreadsheetId);
+
   return { rootFolderId, spreadsheetId, receiptsFolderId };
+}
+
+async function ensureSettingsSheet(accessToken: string, spreadsheetId: string): Promise<void> {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets(properties(title))`;
+    const data = await fetchGoogleAPI(url, accessToken);
+    const sheets = data.sheets || [];
+    const hasSettings = sheets.some((s: any) => s.properties.title === '設定');
+
+    if (!hasSettings) {
+        // Create '設定' sheet
+        const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+        await fetchGoogleAPI(batchUrl, accessToken, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                requests: [{ addSheet: { properties: { title: '設定' } } }]
+            })
+        });
+
+        // Initialize headers
+        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A1:B1?valueInputOption=USER_ENTERED`;
+        await fetchGoogleAPI(updateUrl, accessToken, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                values: [['キー', '値']]
+            })
+        });
+    }
+}
+
+export async function getSettingsFromSheet(accessToken: string, spreadsheetId: string): Promise<Record<string, string>> {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A2:B10`;
+    try {
+        const data = await fetchGoogleAPI(url, accessToken);
+        const rows = data.values || [];
+        const settings: Record<string, string> = {};
+        rows.forEach((row: any[]) => {
+            if (row[0]) settings[row[0]] = row[1] || '';
+        });
+        return settings;
+    } catch (e) {
+        console.error('Failed to get settings:', e);
+        return {};
+    }
+}
+
+export async function updateSettingsInSheet(accessToken: string, spreadsheetId: string, key: string, value: string): Promise<void> {
+    // We assume the key is in A2 for customPrompt for simplicity, 
+    // or we can search for it. Let's just use A2:B2 for customPrompt.
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A2:B2?valueInputOption=USER_ENTERED`;
+    await fetchGoogleAPI(url, accessToken, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            values: [[key, value]]
+        })
+    });
 }
 
 export async function appendRowToSheet(accessToken: string, spreadsheetId: string, values: string[]): Promise<any> {

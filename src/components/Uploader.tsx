@@ -92,15 +92,52 @@ export default function Uploader() {
     const [customPrompt, setCustomPrompt] = useState<string>('');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+    // 設定初期ロード（クラウド -> ローカル）
     useEffect(() => {
-        const saved = localStorage.getItem('orchRecitCustomPrompt');
-        if (saved) setCustomPrompt(saved);
+        const loadSettings = async () => {
+            // まずlocalStorageから高速ロード
+            const localPrompt = localStorage.getItem('orchRecitCustomPrompt') || '';
+            setCustomPrompt(localPrompt);
+
+            // クラウドから最新を取得
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                if (data.success && data.settings?.customPrompt !== undefined) {
+                    const cloudPrompt = data.settings.customPrompt;
+                    if (cloudPrompt !== localPrompt) {
+                        setCustomPrompt(cloudPrompt);
+                        localStorage.setItem('orchRecitCustomPrompt', cloudPrompt);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to sync settings from cloud:', error);
+            }
+        };
+        loadSettings();
     }, []);
 
-    const handleSaveSettings = () => {
+    const handleSaveSettings = async () => {
+        // ローカルに保存
         localStorage.setItem('orchRecitCustomPrompt', customPrompt);
         setIsSettingsOpen(false);
         toast.success('設定を保存しました');
+
+        // クラウドに同期
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customPrompt }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Failed to sync settings to cloud:', error);
+            toast.error('クラウドへの同期に失敗しました（次回起動時に再試行されます）');
+        }
     };
 
     // ── STEP 1: AI解析のみ ───────────────────────────────────────────────
