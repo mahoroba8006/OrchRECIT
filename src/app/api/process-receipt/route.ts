@@ -28,6 +28,7 @@ export async function POST(req: Request) {
         const analyzeOnly = formData.get('analyzeOnly') === 'true';
         const saveItem = formData.get('saveItem') === 'true';
         const mode = (formData.get('mode') as 'total' | 'details') || 'details';
+        const customPrompt = (formData.get('customPrompt') as string) || '';
 
         // ── モード1: 解析のみ ─────────────────────────────────────────────
         if (analyzeOnly) {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
             const base64Image = buffer.toString('base64');
 
             console.log(`Analyzing with Gemini (mode: ${mode})...`);
-            const result = await analyzeReceipt(base64Image, file.type, mode);
+            const result = await analyzeReceipt(base64Image, file.type, mode, customPrompt);
             console.log("Analyzed data:", result);
             return NextResponse.json({ success: true, data: result });
         }

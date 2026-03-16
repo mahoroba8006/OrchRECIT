@@ -56,19 +56,18 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 }
 
 // ── 農業科目の判断プロンプト ─────────────────────────────────────────
-const getReceiptPrompt = (mode: 'total' | 'details') => `
+const getReceiptPrompt = (mode: 'total' | 'details', customPrompt: string = '') => {
+    const customSection = customPrompt.trim() ? `\n## 1. 特記科目（最優先）\n${customPrompt}\n` : '';
+    const standardSectionNumber = customPrompt.trim() ? "2" : "1";
+
+    return `
 # Role
-あなたは農業経理のスペシャリストであり、長野税務署（関東信越国税局）の指導基準を熟知した税理士パートナーです。
+あなたは農業経理のスペシャリストであり、青色申告決算書（農業所得用）の基準を熟知した税理士パートナーです。
 OCRテキストから、個人農家の青色申告決算書（農業所得用）に最適な勘定科目を推論してください。
 
 # Category Definition Hierarchy
-
-## 1. 長野税務署 特記科目（最優先）
-- 作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽、保護メガネ。
-- 荷造運賃手数料: 発送用段ボール、緩衝材、送料に加え、JA等の「販売手数料」をここに含める。
-- 小農具費: 10万円未満の剪定バサミ、ノコギリ、ハシゴ、噴霧器、鎌。
-
-## 2. 農業所得 標準科目
+${customSection}
+## ${standardSectionNumber}. 農業所得 標準科目
 - 租税公課: 農業用資産の固定資産税、軽トラの自動車税、印紙代。
 - 種苗費: 苗木、種子、接木クリップ。
 - 肥料費: 有機肥料、化成肥料、土壌改良材。
@@ -96,11 +95,12 @@ ${mode === 'total' ?
         '- 個別の明細は抽出せず、レシート全体の合計金額のみを1件の品目として抽出してください。品目名は、レシートに記載されている明細が1件のみの場合はその品目名をそのまま使用し、複数件ある場合は1件目の品目名に「～など」を付けた名称にしてください。合計行を除外しないでください。' :
         '- 品目名・金額をレシートから正確に抽出する。小計・合計行は除外する。'}
 - 「要確認」「該当なし」は禁止。必ずいずれかの科目にする。
-- AIコメントは「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。長野税務署の特記科目（作業用衣料費・荷造運賃手数料・小農具費）に基づき判断した場合は、その旨を明記する。
+- AIコメントは「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。特記科目（最優先）の情報が提供されておりそれに基づき判断した場合は、その旨を明記する。
 - 品目が1件の場合も items 配列に1件だけ入れて返す。
 `;
+};
 
-export async function analyzeReceipt(base64Image: string, mimeType: string, mode: 'total' | 'details' = 'details'): Promise<AnalyzeReceiptResult> {
+export async function analyzeReceipt(base64Image: string, mimeType: string, mode: 'total' | 'details' = 'details', customPrompt: string = ''): Promise<AnalyzeReceiptResult> {
     const response = await withRetry(() =>
         getAI().models.generateContent({
             model: 'gemini-2.5-flash',
@@ -108,7 +108,7 @@ export async function analyzeReceipt(base64Image: string, mimeType: string, mode
                 {
                     role: 'user',
                     parts: [
-                        { text: getReceiptPrompt(mode) },
+                        { text: getReceiptPrompt(mode, customPrompt) },
                         { inlineData: { data: base64Image, mimeType } }
                     ]
                 }
@@ -147,7 +147,7 @@ export async function analyzeReceipt(base64Image: string, mimeType: string, mode
                                             '接待交際費', '雑費'
                                         ]
                                     },
-                                    aiComment: { type: Type.STRING, description: 'AIコメント。「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。長野税務署の特記科目（作業用衣料費・荷造運賃手数料・小農具費）に基づき判断した場合は、その旨を明記する。' },
+                                    aiComment: { type: Type.STRING, description: 'AIコメント。「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。特記科目の情報が提供されておりそれに基づき判断した場合は、その旨を明記する。' },
                                     is_asset: { type: Type.BOOLEAN, description: '10万円以上の固定資産候補の場合true' },
                                     apportionment_required: { type: Type.BOOLEAN, description: 'ガソリン・電気・通信費等、按分が必要な場合true' },
                                 },

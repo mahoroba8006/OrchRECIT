@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X, ListChecks } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X, ListChecks, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
@@ -87,6 +87,21 @@ export default function Uploader() {
         if (cameraInputRef.current) cameraInputRef.current.value = "";
     };
 
+    // ── 特記科目カスタム設定 ──
+    const [customPrompt, setCustomPrompt] = useState<string>('');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('orchRecitCustomPrompt');
+        if (saved) setCustomPrompt(saved);
+    }, []);
+
+    const handleSaveSettings = () => {
+        localStorage.setItem('orchRecitCustomPrompt', customPrompt);
+        setIsSettingsOpen(false);
+        toast.success('設定を保存しました');
+    };
+
     // ── STEP 1: AI解析のみ ───────────────────────────────────────────────
     const handleAnalyze = async (mode: 'total' | 'details') => {
         if (!file) return;
@@ -97,6 +112,7 @@ export default function Uploader() {
             formData.append('file', file);
             formData.append('analyzeOnly', 'true');
             formData.append('mode', mode);
+            formData.append('customPrompt', customPrompt);
 
             const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
             const data = await res.json();
@@ -233,6 +249,12 @@ export default function Uploader() {
 
     return (
         <div className="w-full max-w-2xl mx-auto mt-8">
+            <div className="flex justify-end mb-4">
+                <button onClick={() => setIsSettingsOpen(true)} className="flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors">
+                    <Settings className="w-4 h-4 mr-2" />
+                    特記科目の設定
+                </button>
+            </div>
             <AnimatePresence mode="wait">
                 {!file ? (
                     /* ── ドロップゾーン ── */
@@ -536,6 +558,68 @@ export default function Uploader() {
                                 </motion.div>
                             )}
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── 特記科目設定モーダル ── */}
+            <AnimatePresence>
+                {isSettingsOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+                        onClick={() => setIsSettingsOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                                    <Settings className="text-slate-500 w-5 h-5" />
+                                    科目判断の優先事項・カスタマイズ
+                                </h3>
+                                <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 flex-1">
+                                <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                                    各地域での特記事項や、ご自身でカスタマイズしたい条件を入力してください。<br/>
+                                    AIがレシートを解析する際、<strong>この内容を最優先の判断ルール</strong>として使用します。
+                                </p>
+                                <textarea
+                                    value={customPrompt}
+                                    onChange={(e) => setCustomPrompt(e.target.value)}
+                                    maxLength={500}
+                                    rows={7}
+                                    className="w-full p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-slate-50 select-text"
+                                    placeholder={`例：\n・作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽など。\n・小農具費: 10万円未満の剪定バサミ等。\n・諸材料費: 果実袋、支柱、誘引紐など。`}
+                                />
+                                <div className="text-right text-xs text-slate-400 mt-2">
+                                    {customPrompt.length} / 500
+                                </div>
+                            </div>
+                            <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-white">
+                                <button
+                                    onClick={() => setIsSettingsOpen(false)}
+                                    className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                                >
+                                    キャンセル
+                                </button>
+                                <button
+                                    onClick={handleSaveSettings}
+                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition-colors"
+                                >
+                                    設定を保存
+                                </button>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
