@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-export const runtime = 'edge';
+
 
 async function fetchGoogleAPI(url: string, accessToken: string) {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }});

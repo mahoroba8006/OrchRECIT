@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 import { setupUserWorkspace, getSettingsFromFile, updateSettingsInFile } from '@/lib/google';
 
-export const runtime = 'edge';
+
 
 export async function GET() {
     try {
