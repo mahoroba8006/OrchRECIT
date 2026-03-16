@@ -1,12 +1,13 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { getEnv } from '@/auth';
 
 // ビルド時に環境変数が無くてもエラーにならないよう、実行時に初期化する
-function getAI(): GoogleGenAI {
-    const apiKey = process.env.GEMINI_API_KEY;
+function getAI() {
+    const apiKey = getEnv('GEMINI_API_KEY');
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY が設定されていません');
     }
-    return new GoogleGenAI({ apiKey });
+    return new GoogleGenerativeAI(apiKey);
 }
 
 /** レシートのヘッダー情報（1枚のレシートに共通） */
@@ -101,71 +102,67 @@ ${mode === 'total' ?
 };
 
 export async function analyzeReceipt(base64Image: string, mimeType: string, mode: 'total' | 'details' = 'details', customPrompt: string = ''): Promise<AnalyzeReceiptResult> {
-    const response = await withRetry(() =>
-        getAI().models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        { text: getReceiptPrompt(mode, customPrompt) },
-                        { inlineData: { data: base64Image, mimeType } }
-                    ]
-                }
-            ],
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        header: {
-                            type: Type.OBJECT,
-                            properties: {
-                                date: { type: Type.STRING, description: 'レシートの支払日(YYYY-MM-DD形式)' },
-                                payee: { type: Type.STRING, description: '支払先の店舗名や会社名' },
-                                businessNumber: { type: Type.STRING, description: 'Tから始まるインボイス登録番号。無ければ空文字' },
-                                paymentMethod: { type: Type.STRING, description: 'カード・現金など。不明なら空文字' },
-                            },
-                            required: ['date', 'payee', 'businessNumber', 'paymentMethod'],
+    const genAI = getAI();
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    header: {
+                        type: SchemaType.OBJECT,
+                        properties: {
+                            date: { type: SchemaType.STRING, description: 'レシートの支払日(YYYY-MM-DD形式)' },
+                            payee: { type: SchemaType.STRING, description: '支払先の店舗名や会社名' },
+                            businessNumber: { type: SchemaType.STRING, description: 'Tから始まるインボイス登録番号。無ければ空文字' },
+                            paymentMethod: { type: SchemaType.STRING, description: 'カード・現金など。不明なら空文字' },
                         },
-                        items: {
-                            type: Type.ARRAY,
-                            description: '品目リスト（小計・合計行は除外）',
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    itemName: { type: Type.STRING, description: '品目名（レシートに記載された名称）' },
-                                    amount: { type: Type.NUMBER, description: 'この品目の金額（税込）' },
-                                    category: {
-                                        type: Type.STRING,
-                                        description: '推測された勘定科目名',
-                                        enum: [
-                                            '作業用衣料費', '荷造運賃手数料', '小農具費',
-                                            '租税公課', '種苗費', '肥料費', '農薬費', '諸材料費',
-                                            '修繕費', '動力光熱費', '小作料・賃借料', '雇人費',
-                                            '福利厚生費', '利子割引料', '通信費', '事務用品費',
-                                            '接待交際費', '雑費'
-                                        ]
-                                    },
-                                    aiComment: { type: Type.STRING, description: 'AIコメント。「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。特記科目の情報が提供されておりそれに基づき判断した場合は、その旨を明記する。' },
-                                    is_asset: { type: Type.BOOLEAN, description: '10万円以上の固定資産候補の場合true' },
-                                    apportionment_required: { type: Type.BOOLEAN, description: 'ガソリン・電気・通信費等、按分が必要な場合true' },
-                                },
-                                required: ['itemName', 'amount', 'category', 'aiComment', 'is_asset', 'apportionment_required'],
-                            }
-                        }
+                        required: ['date', 'payee', 'businessNumber', 'paymentMethod'],
                     },
-                    required: ['header', 'items'],
+                    items: {
+                        type: SchemaType.ARRAY,
+                        description: '品目リスト（小計・合計行は除外）',
+                        items: {
+                            type: SchemaType.OBJECT,
+                            properties: {
+                                itemName: { type: SchemaType.STRING, description: '品目名（レシートに記載された名称）' },
+                                amount: { type: SchemaType.NUMBER, description: 'この品目の金額（税込）' },
+                                category: {
+                                    type: SchemaType.STRING,
+                                    description: '推測された勘定科目名',
+                                    enum: [
+                                        '作業用衣料費', '荷造運賃手数料', '小農具費',
+                                        '租税公課', '種苗費', '肥料費', '農薬費', '諸材料費',
+                                        '修繕費', '動力光熱費', '小作料・賃借料', '雇人費',
+                                        '福利厚生費', '利子割引料', '通信費', '事務用品費',
+                                        '接待交際費', '雑費'
+                                    ]
+                                },
+                                aiComment: { type: SchemaType.STRING, description: 'AIコメント。「科目の判断理由」「判断が難しい場合はその理由」「農業経費とする際の注意事項」「ためになるワンポイント知識」などを200字程度を目安に、要点をシンプルにまとめて記述する。特記科目の情報が提供されておりそれに基づき判断した場合は、その旨を明記する。' },
+                                is_asset: { type: SchemaType.BOOLEAN, description: '10万円以上の固定資産候補の場合true' },
+                                apportionment_required: { type: SchemaType.BOOLEAN, description: 'ガソリン・電気・通信費等、按分が必要な場合true' },
+                            },
+                            required: ['itemName', 'amount', 'category', 'aiComment', 'is_asset', 'apportionment_required'],
+                        }
+                    }
                 },
-                temperature: 0.1,
-            }
-        })
-    );
+                required: ['header', 'items'],
+            },
+            temperature: 0.1,
+        }
+    });
 
-    const responseText = response.text || '{}';
+    const result = await model.generateContent([
+        { text: getReceiptPrompt(mode, customPrompt) },
+        { inlineData: { data: base64Image, mimeType } }
+    ]);
+
+    const response = await result.response;
+    const responseText = response.text() || '{}';
     try {
         const aiRes = JSON.parse(responseText);
-        const result: AnalyzeReceiptResult = {
+        const receiptResult: AnalyzeReceiptResult = {
             header: {
                 date: aiRes.header?.date || '',
                 payee: aiRes.header?.payee || '',
@@ -182,15 +179,15 @@ export async function analyzeReceipt(base64Image: string, mimeType: string, mode
             })),
         };
         // itemsが空の場合はフォールバック
-        if (result.items.length === 0) {
-            result.items.push({
+        if (receiptResult.items.length === 0) {
+            receiptResult.items.push({
                 itemName: '（品目不明）',
                 amount: 0,
                 category: '雑費',
                 aiComment: '品目を読み取れませんでした。金額・科目を手動で修正してください。',
             });
         }
-        return result;
+        return receiptResult;
     } catch (e) {
         console.error('Failed to parse Gemini response:', responseText);
         throw new Error('Failed to parse receipt data from Gemini');
@@ -200,26 +197,27 @@ export async function analyzeReceipt(base64Image: string, mimeType: string, mode
 export async function searchReceipts(query: string, rows: any[]): Promise<number[]> {
     const prompt = `経費データから「${query}」に合致する件の rowIndex を数値配列で返してください。\n例: [2, 5, 8]\nデータ:\n${JSON.stringify(rows)}`;
 
-    const response = await withRetry(() =>
-        getAI().models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            config: {
-                temperature: 0.1,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: { type: Type.INTEGER }
-                }
+    const genAI = getAI();
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.INTEGER }
             }
-        })
-    ) as any;
+        }
+    });
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
 
     try {
-        const text = response.text || '[]';
+        const text = response.text() || '[]';
         return JSON.parse(text) as number[];
     } catch (e) {
-        console.error('Failed to parse AI search results:', response.text);
+        console.error('Failed to parse AI search results:', response.text());
         return [];
     }
 }

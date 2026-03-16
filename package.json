@@ -7,12 +7,12 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "pages:build": "opennextjs-cloudflare build --webpack && mkdir -p .open-next/assets/_next && cp -r .next/static .open-next/assets/_next/static && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/cloudflare && cp -r .open-next/middleware .open-next/assets/middleware && cp -r .open-next/server-functions .open-next/assets/server-functions && cp -r .open-next/.build .open-next/assets/.build && cp -r public/* .open-next/assets/ && echo '{\"version\":1,\"include\":[\"/*\"],\"exclude\":[\"/_next/static/*\"]}' > .open-next/assets/_routes.json",
+    "pages:build": "opennextjs-cloudflare build --webpack && mkdir -p .open-next/assets/_next && cp -r .next/static .open-next/assets/_next/static && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/cloudflare && cp -r .open-next/middleware .open-next/assets/middleware && cp -r .open-next/server-functions .open-next/assets/server-functions && cp -r .open-next/.build .open-next/assets/.build && cp -r public/* .open-next/assets/ && echo '{\"version\":1,\"include\":[\"/*\"],\"exclude\":[\"/_next/static/*\", \"/sw.js\", \"/workbox-*.js\", \"/manifest.webmanifest\"]}' > .open-next/assets/_routes.json",
     "preview": "opennextjs-cloudflare preview"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
-    "@google/genai": "^1.42.0",
+    "@google/generative-ai": "^0.24.1",
     "@googleapis/drive": "^20.1.0",
     "@googleapis/sheets": "^13.0.1",
     "browser-image-compression": "^2.0.2",

@@ -38,10 +38,8 @@ async function refreshAccessToken(token: any) {
     }
 }
 
-function getEnv(key: string): string {
-    if (typeof process !== 'undefined' && process.env[key]) return process.env[key] as string;
-    if (typeof globalThis !== 'undefined' && (globalThis as any).process?.env?.[key]) return (globalThis as any).process.env[key] as string;
-    return "";
+export function getEnv(key: string): string {
+    return process.env[key] || "";
 }
 
 const nextAuthUrl = getEnv("NEXTAUTH_URL");
