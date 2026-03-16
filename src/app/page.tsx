@@ -25,12 +25,7 @@ export default async function Home() {
 
           <nav className="flex items-center gap-4">
             {session ? (
-              <>
-                <Link href="/about" className="text-slate-600 hover:text-blue-600 font-medium text-sm transition-colors">
-                  アプリの説明
-                </Link>
-                <SignInButton className="text-sm px-4 py-2" isSignIn={false} />
-              </>
+              <SignInButton className="text-sm px-4 py-2" isSignIn={false} />
             ) : (
               <SignInButton isSignIn={true} />
             )}

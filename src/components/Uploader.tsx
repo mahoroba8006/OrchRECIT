@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X, ListChecks, Settings } from 'lucide-react';
+import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X, ListChecks, Settings, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 import { AnalyzeReceiptResult, ReceiptItem, ReceiptHeader } from '@/lib/gemini';
@@ -249,10 +250,20 @@ export default function Uploader() {
 
     return (
         <div className="w-full max-w-2xl mx-auto mt-8">
-            <div className="flex justify-end mb-4">
-                <button onClick={() => setIsSettingsOpen(true)} className="flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors">
+            <div className="flex justify-end gap-3 mb-4">
+                <Link
+                    href="/about"
+                    className="flex items-center text-sm text-slate-600 hover:text-blue-600 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
+                >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    アプリの使い方
+                </Link>
+                <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
+                >
                     <Settings className="w-4 h-4 mr-2" />
-                    科目判断のカスタマイズ
+                    カスタマイズ
                 </button>
             </div>
             <AnimatePresence mode="wait">

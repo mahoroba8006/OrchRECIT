@@ -161,7 +161,7 @@ export default function HistoryViewer() {
                 <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
                     <input
                         type="text"
-                        placeholder="AIあいまい検索 (例: 先月の交通費 など)"
+                        placeholder="AI検索 (例: 先月の交通費)"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-12 pr-24 py-4 rounded-xl border border-slate-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-700 transition-all font-medium"
