@@ -130,6 +130,7 @@ export async function analyzeReceipt(base64Image: string, mimeType: string, mode
                                 amount: { type: SchemaType.NUMBER, description: 'この品目の金額（税込）' },
                                 category: {
                                     type: SchemaType.STRING,
+                                    format: 'enum',
                                     description: '推測された勘定科目名',
                                     enum: [
                                         '作業用衣料費', '荷造運賃手数料', '小農具費',
