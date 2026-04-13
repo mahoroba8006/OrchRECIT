@@ -637,7 +637,7 @@ export default function Uploader() {
                                 </button>
                             </div>
                             <div className="p-6 flex-1">
-                                <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                                <p className="text-sm text-slate-600 mb-4 leading-relaxed text-left">
                                     各地域での特記事項や、ご自身でカスタマイズしたい条件を入力してください。<br/>
                                     AIがレシートを解析する際、<strong>この内容を最優先の判断ルール</strong>として使用します。
                                 </p>
