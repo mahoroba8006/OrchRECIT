@@ -297,7 +297,7 @@ export default function Uploader() {
                 </Link>
                 <button
                     onClick={() => setIsSettingsOpen(true)}
-                    className="flex items-center text-sm text-slate-600 hover:text-slate-900 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
+                    className="flex items-center text-sm text-slate-600 hover:text-blue-600 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
                 >
                     <Settings className="w-4 h-4 mr-2" />
                     カスタマイズ
@@ -330,7 +330,7 @@ export default function Uploader() {
                         <div className="flex gap-4 w-full justify-center">
                             <button
                                 type="button"
-                                className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 shadow-sm transition-all"
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm transition-all"
                                 onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
                             >
                                 <Camera size={18} />カメラで撮影
