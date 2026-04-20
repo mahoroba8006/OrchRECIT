@@ -14,19 +14,24 @@ interface CatStat {
   color: string;
 }
 
-const CAT_COLORS: Record<string, string> = {
-  '種苗費': 'var(--primary)',
-  '肥料費': 'var(--secondary)',
-  '農薬衛生費': '#9b72d0',
-  '動力光熱費': 'var(--warn)',
-  '消耗品費': 'var(--ok)',
-  '農具費': '#e87c4a',
-  '修繕費': '#d97c1a',
-  '租税公課': '#7c8b92',
-};
+const RANK_COLORS = [
+  '#72D07C', // 1位: 緑
+  '#1794D7', // 2位: 青
+  '#E05252', // 3位: 赤
+  '#E8933A', // 4位: オレンジ
+  '#9b72d0', // 5位: 紫
+  '#2ABFAB', // 6位: ティール
+  '#C9B820', // 7位: 黄
+  '#D4608A', // 8位: ピンク
+  '#4A6FD4', // 9位: インディゴ
+  '#7B9E3E', // 10位: オリーブ
+];
 
-function catColor(name: string): string {
-  return CAT_COLORS[name] ?? 'var(--ink-mute)';
+function assignColors(sorted: { name: string; amount: number }[]): CatStat[] {
+  return sorted.map((item, i) => ({
+    ...item,
+    color: i < RANK_COLORS.length ? RANK_COLORS[i] : 'var(--ink-mute)',
+  }));
 }
 
 function currentYear() {
@@ -60,9 +65,11 @@ export default function MonthSummary() {
         sum += amt;
       }
 
-      const sorted = Object.entries(map)
-        .map(([name, amount]) => ({ name, amount, color: catColor(name) }))
-        .sort((a, b) => b.amount - a.amount);
+      const sorted = assignColors(
+        Object.entries(map)
+          .map(([name, amount]) => ({ name, amount }))
+          .sort((a, b) => b.amount - a.amount)
+      );
 
       setStats(sorted);
       setTotal(sum);
@@ -122,56 +129,90 @@ export default function MonthSummary() {
             {isLoading ? '集計中...' : '今年のデータがありません'}
           </div>
         ) : (
-          <>
-            {/* 合計金額 */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
-              <div style={{
-                fontSize: 28, fontWeight: 700, color: 'var(--ink)',
-                fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em',
-              }}>
-                ¥{total.toLocaleString()}
+          <div className="digest-layout">
+            {/* ── 円グラフ ── */}
+            <div className="digest-chart">
+              <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
+                  ¥{total.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{count}件のレシート</div>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{count}件のレシート</div>
+              <svg width="100%" viewBox="0 0 200 200">
+                {(() => {
+                  const cx = 100, cy = 100, r = 70, strokeW = 24;
+                  const circ = 2 * Math.PI * r;
+                  let cumAngle = 0;
+                  return stats.map((c, i) => {
+                    const pct = c.amount / total;
+                    const dash = pct * circ;
+                    const gap = circ - dash;
+                    const dashOffset = -(cumAngle / (2 * Math.PI)) * circ + circ * 0.25;
+                    cumAngle += pct * 2 * Math.PI;
+                    return (
+                      <circle key={i}
+                        cx={cx} cy={cy} r={r}
+                        fill="none" stroke={c.color} strokeWidth={strokeW}
+                        strokeDasharray={`${dash} ${gap}`}
+                        strokeDashoffset={dashOffset}
+                        style={{ transition: 'stroke-dasharray .4s ease' }}
+                      />
+                    );
+                  });
+                })()}
+              </svg>
             </div>
 
-            {/* スタックバー */}
-            {total > 0 && (
-              <div style={{
-                display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden',
-                marginBottom: 14, background: 'var(--bg-soft)', border: '1px solid var(--border)',
-              }}>
-                {stats.map((c, i) => (
-                  <div key={i} style={{
-                    width: `${(c.amount / total) * 100}%`,
-                    background: c.color,
-                    borderRight: i < stats.length - 1 ? '2px solid #fff' : 'none',
-                    minWidth: c.amount > 0 ? 2 : 0,
-                  }} />
-                ))}
-              </div>
-            )}
-
-            {/* 凡例 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+            {/* ── 科目リスト ── */}
+            <div className="digest-list">
               {stats.map((c, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 0',
+                  borderBottom: i < stats.length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)' }}>
-                      ¥{c.amount.toLocaleString()}
-                    </div>
+                  <div style={{ flex: 1, fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>{c.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                    ¥{c.amount.toLocaleString()}
                   </div>
                 </div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
+      <style>{`
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .digest-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .digest-chart {
+          width: 160px;
+          margin: 0 auto;
+          flex-shrink: 0;
+        }
+        .digest-list {
+          flex: 1;
+        }
+        @media (min-width: 540px) {
+          .digest-layout {
+            flex-direction: row;
+            align-items: center;
+            gap: 80px;
+          }
+          .digest-chart {
+            width: 180px;
+            margin: 0;
+          }
+          .digest-list {
+            max-width: 260px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

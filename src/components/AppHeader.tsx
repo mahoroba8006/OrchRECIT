@@ -25,7 +25,6 @@ function SproutLogo() {
 const NAV_ITEMS: [View, string][] = [
   ['home', 'ホーム'],
   ['history', '履歴'],
-  ['about', '使い方'],
 ];
 
 export default function AppHeader({ view, setView, userName, isLoggedIn }: Props) {
@@ -44,40 +43,30 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
       <div style={{
         maxWidth: 1120,
         margin: '0 auto',
-        padding: '14px 20px',
+        padding: '10px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 16,
+        gap: 12,
       }}>
         {/* ロゴ */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
           onClick={() => setView('home')}
         >
           <SproutLogo />
-          <div>
-            <div style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1,
-            }}>
-              Orch.RECIT
-            </div>
-            <div style={{
-              fontSize: 11,
-              color: 'var(--ink-mute)',
-              marginTop: 3,
-              letterSpacing: '0.08em',
-            }}>
-              AI RECEIPT FOR FARMERS
-            </div>
+          <div style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1,
+          }}>
+            Orch.RECIT
           </div>
         </div>
 
-        {/* ナビ */}
+        {/* ナビ + ユーザー */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {isLoggedIn && NAV_ITEMS.map(([key, label]) => (
             <button
@@ -94,6 +83,7 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'background .18s, color .18s',
+                whiteSpace: 'nowrap',
               }}
             >
               {label}
@@ -105,15 +95,16 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
               marginLeft: 8,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '6px 10px 6px 6px',
-              borderRadius: 999,
+              gap: 4,
               background: 'var(--bg-soft)',
               border: '1px solid var(--border)',
+              borderRadius: 999,
+              padding: '4px 4px 4px 4px',
             }}>
+              {/* アバター円 */}
               <div style={{
-                width: 26,
-                height: 26,
+                width: 28,
+                height: 28,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
                 color: '#fff',
@@ -126,9 +117,7 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
               }}>
                 {initial}
               </div>
-              <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                {userName}
-              </span>
+              {/* ログアウトアイコン */}
               <SignInButton isSignIn={false} compact />
             </div>
           ) : (

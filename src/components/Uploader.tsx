@@ -511,8 +511,8 @@ export default function Uploader({ onNavigateHistory }: Props) {
                 fontFamily: 'var(--font-mono)', fontSize: 8, color: '#555',
                 clipPath: 'polygon(0 0, 100% 0, 100% 96%, 93% 100%, 86% 96%, 78% 100%, 71% 96%, 64% 100%, 57% 96%, 50% 100%, 43% 96%, 36% 100%, 29% 96%, 22% 100%, 14% 96%, 7% 100%, 0 96%)',
               }}>
-                <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 6, fontSize: 10 }}>JA ながの</div>
-                {['苗 トマト.....¥4,800', 'ハサミ.........¥2,480', '液体肥料.......¥3,200', '─────────────', '合計.........¥10,480'].map((l, i) => (
+                <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 6, fontSize: 10 }}>■■■■■■</div>
+                {['○○○○○..........△△△', '○○○○.............△△△', '○△○○○○.......△△△', '─────────────', '□□□..............△△△'].map((l, i) => (
                   <div key={i} style={{ marginBottom: 3 }}>{l}</div>
                 ))}
               </div>
