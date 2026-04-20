@@ -1,12 +1,87 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --bg: #f4fbf4;
+  --bg-soft: #eaf6ea;
+  --surface: #ffffff;
+  --ink: #14291a;
+  --ink-soft: #4f6a55;
+  --ink-mute: #869b8c;
+  --border: #e0ecdf;
+  --border-strong: #c9dcc6;
+  --primary: #72D07C;
+  --primary-soft: #e3f4e5;
+  --primary-fg: #0e2412;
+  --secondary: #1794D7;
+  --secondary-soft: #d9edf8;
+  --warn: #d98e2b;
+  --warn-soft: #fbecd2;
+  --ok: #2faa55;
+  --ok-soft: #dff2e4;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow-card: 0 1px 2px rgba(16,40,28,.03), 0 8px 24px -12px rgba(16,40,28,.08);
+  --font-mono: ui-monospace, 'JetBrains Mono', monospace;
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    background-color: var(--bg);
+    color: var(--ink);
   }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: .3; }
+  50% { opacity: 1; }
+}
+
+@keyframes drip {
+  0% { transform: translateY(0); opacity: .6; }
+  80% { opacity: .4; }
+  100% { transform: translateY(60px); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(6deg); }
+}
+
+@keyframes scan {
+  0% { top: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes markerIn {
+  0%, 60% { opacity: 0; }
+  70%, 90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes sproutFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -30px); }
 }

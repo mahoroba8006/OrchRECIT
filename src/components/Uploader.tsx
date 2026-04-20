@@ -1,676 +1,980 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Camera, CheckCircle, Loader2, FileImage, Download, Trash2, Pencil, Check, X, ListChecks, Settings, HelpCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 import { AnalyzeReceiptResult, ReceiptItem, ReceiptHeader } from '@/lib/gemini';
 
-export default function Uploader() {
-    const [file, setFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [analyzingMode, setAnalyzingMode] = useState<'total' | 'details' | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
+type Stage = 'dropzone' | 'preview' | 'analyzing' | 'review' | 'edit' | 'done';
 
-    // 解析結果（品目リスト）
-    const [analyzeResult, setAnalyzeResult] = useState<AnalyzeReceiptResult | null>(null);
-    const [currentItemIndex, setCurrentItemIndex] = useState(0);
-    const [savedDriveLink, setSavedDriveLink] = useState<string | null>(null);
-    const [savedCount, setSavedCount] = useState(0);
-    const [skippedCount, setSkippedCount] = useState(0);
-    const [isCompleted, setIsCompleted] = useState(false);
+interface Props {
+  onNavigateHistory?: () => void;
+}
 
-    // 編集
-    const [isEditing, setIsEditing] = useState(false);
-    const [editDraft, setEditDraft] = useState<ReceiptItem & Partial<ReceiptHeader> | null>(null);
+/* ── 共通スタイルヘルパー ── */
+const card = (extra: React.CSSProperties = {}): React.CSSProperties => ({
+  background: 'var(--surface)',
+  borderRadius: 'var(--radius)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow-card)',
+  overflow: 'hidden',
+  ...extra,
+});
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
+const btn = (variant: 'primary' | 'secondary' | 'ghost' | 'soft' | 'warn', extra: React.CSSProperties = {}): React.CSSProperties => {
+  const base: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '12px 18px', borderRadius: 'var(--radius-sm)', border: '1px solid transparent',
+    fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+    transition: 'transform .18s ease, box-shadow .18s ease',
+  };
+  const variants: Record<string, React.CSSProperties> = {
+    primary: { background: 'var(--primary)', color: 'var(--primary-fg)', boxShadow: '0 1px 0 rgba(0,0,0,.04), 0 8px 18px -8px #72D07C66' },
+    secondary: { background: 'var(--secondary)', color: '#fff', boxShadow: '0 1px 0 rgba(0,0,0,.04), 0 8px 18px -8px #1794D766' },
+    ghost: { background: '#fff', color: 'var(--ink)', border: '1px solid var(--border)' },
+    soft: { background: 'var(--primary-soft)', color: 'var(--primary)', border: 'none' },
+    warn: { background: 'var(--warn)', color: '#fff' },
+  };
+  return { ...base, ...variants[variant], ...extra };
+};
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            await handleImageSelection(e.target.files[0]);
+const pill = (tone: 'primary' | 'secondary' | 'warn' | 'ok' | 'neutral'): React.CSSProperties => {
+  const tones: Record<string, React.CSSProperties> = {
+    primary: { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid #72D07C33' },
+    secondary: { background: 'var(--secondary-soft)', color: 'var(--secondary)', border: '1px solid #1794D733' },
+    warn: { background: 'var(--warn-soft)', color: 'var(--warn)', border: '1px solid #d98e2b33' },
+    ok: { background: 'var(--ok-soft)', color: 'var(--ok)', border: '1px solid #2faa5533' },
+    neutral: { background: 'var(--bg-soft)', color: 'var(--ink-soft)', border: '1px solid var(--border)' },
+  };
+  return {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+    ...tones[tone],
+  };
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 12px',
+  borderRadius: 'var(--radius-sm)',
+  border: '1px solid var(--border)',
+  background: '#fff', fontSize: 14,
+  color: 'var(--ink)', fontFamily: 'inherit', outline: 'none',
+  boxSizing: 'border-box',
+};
+
+export default function Uploader({ onNavigateHistory }: Props) {
+  /* ── State ── */
+  const [stage, setStage] = useState<Stage>('dropzone');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeReceiptResult | null>(null);
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+  const [savedDriveLink, setSavedDriveLink] = useState<string | null>(null);
+  const [savedCount, setSavedCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<ReceiptItem & Partial<ReceiptHeader> | null>(null);
+
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [pendingItem, setPendingItem] = useState<ReceiptItem | null>(null);
+
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [dropHover, setDropHover] = useState(false);
+
+  /* ── 設定ロード ── */
+  useEffect(() => {
+    const loadSettings = async () => {
+      const local = localStorage.getItem('orchRecitCustomPrompt') || '';
+      setCustomPrompt(local);
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.success && data.settings?.customPrompt !== undefined) {
+          const cloud = data.settings.customPrompt;
+          if (cloud !== local) {
+            setCustomPrompt(cloud);
+            localStorage.setItem('orchRecitCustomPrompt', cloud);
+          }
         }
+      } catch {}
     };
+    loadSettings();
+  }, []);
 
-    const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  /* ── 画像選択 ── */
+  const handleImageSelection = async (originalFile: File) => {
+    const toastId = toast.loading('画像を最適化しています...');
+    try {
+      const compressed = await imageCompression(originalFile, {
+        maxSizeMB: 0.5, maxWidthOrHeight: 1000, useWebWorker: true,
+      });
+      setFile(compressed as File);
+      setPreviewUrl(URL.createObjectURL(compressed));
+    } catch {
+      setFile(originalFile);
+      setPreviewUrl(URL.createObjectURL(originalFile));
+    }
+    toast.dismiss(toastId);
+    resetAnalysis();
+    setStage('preview');
+  };
 
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const dropped = e.dataTransfer.files[0];
-            if (dropped.type.startsWith('image/')) {
-                await handleImageSelection(dropped);
-            } else {
-                toast.error('画像ファイルのみアップロード可能です');
-            }
-        }
-    };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) await handleImageSelection(e.target.files[0]);
+  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setDropHover(true); };
+  const handleDragLeave = () => setDropHover(false);
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault(); setDropHover(false);
+    const f = e.dataTransfer.files[0];
+    if (f?.type.startsWith('image/')) await handleImageSelection(f);
+    else toast.error('画像ファイルのみアップロード可能です');
+  };
 
-    const handleImageSelection = async (originalFile: File) => {
-        const toastId = toast.loading('画像を最適化しています...');
-        try {
-            const compressed = await imageCompression(originalFile, {
-                maxSizeMB: 0.5,
-                maxWidthOrHeight: 1000,
-                useWebWorker: true,
-            });
-            setFile(compressed as File);
-            setPreviewUrl(URL.createObjectURL(compressed));
-            resetAnalysis();
-            toast.dismiss(toastId);
-        } catch {
-            setFile(originalFile);
-            setPreviewUrl(URL.createObjectURL(originalFile));
-            resetAnalysis();
-            toast.dismiss(toastId);
-        }
-    };
+  const resetAnalysis = () => {
+    setAnalyzeResult(null);
+    setCurrentItemIndex(0);
+    setSavedDriveLink(null);
+    setSavedCount(0);
+    setSkippedCount(0);
+    setIsEditing(false);
+    setEditDraft(null);
+  };
 
-    const resetAnalysis = () => {
-        setAnalyzeResult(null);
+  const resetAll = () => {
+    setFile(null);
+    setPreviewUrl(null);
+    resetAnalysis();
+    setStage('dropzone');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  /* ── AI解析 ── */
+  const handleAnalyze = async (mode: 'total' | 'details') => {
+    if (!file) return;
+    setStage('analyzing');
+    const loadingToast = toast.loading('AIでレシートを解析しています...');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('analyzeOnly', 'true');
+      formData.append('mode', mode);
+      formData.append('customPrompt', customPrompt);
+      const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.dismiss(loadingToast);
+        setAnalyzeResult(data.data);
         setCurrentItemIndex(0);
-        setSavedDriveLink(null);
         setSavedCount(0);
         setSkippedCount(0);
-        setIsCompleted(false);
-        setIsEditing(false);
-        setEditDraft(null);
-    };
+        setSavedDriveLink(null);
+        setStage('review');
+      } else throw new Error(data.error || '解析に失敗しました');
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE')) {
+        toast.dismiss(loadingToast);
+        window.alert('しばらく待ってから再度処理してください。\n（AIモデルがビジー状態、または通信エラーです）');
+        setStage('preview');
+      } else {
+        toast.error(msg, { id: loadingToast });
+        setStage('preview');
+      }
+    }
+  };
 
-    const resetAll = () => {
-        setFile(null);
-        setPreviewUrl(null);
-        resetAnalysis();
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        if (cameraInputRef.current) cameraInputRef.current.value = "";
-    };
-
-    // ── 特記科目カスタム設定 ──
-    const [customPrompt, setCustomPrompt] = useState<string>('');
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-    // 設定初期ロード（クラウド -> ローカル）
-    useEffect(() => {
-        const loadSettings = async () => {
-            // まずlocalStorageから高速ロード
-            const localPrompt = localStorage.getItem('orchRecitCustomPrompt') || '';
-            setCustomPrompt(localPrompt);
-
-            // クラウドから最新を取得
-            try {
-                const res = await fetch('/api/settings');
-                const data = await res.json();
-                if (data.success && data.settings?.customPrompt !== undefined) {
-                    const cloudPrompt = data.settings.customPrompt;
-                    if (cloudPrompt !== localPrompt) {
-                        setCustomPrompt(cloudPrompt);
-                        localStorage.setItem('orchRecitCustomPrompt', cloudPrompt);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to sync settings from cloud:', error);
-            }
-        };
-        loadSettings();
-    }, []);
-
-    const handleSaveSettings = async () => {
-        // ローカルに保存
-        localStorage.setItem('orchRecitCustomPrompt', customPrompt);
-        setIsSettingsOpen(false);
-        toast.success('設定を保存しました');
-
-        // クラウドに同期
-        try {
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ customPrompt }),
-            });
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error);
-            }
-        } catch (error) {
-            console.error('Failed to sync settings to cloud:', error);
-            toast.error('クラウドへの同期に失敗しました（次回起動時に再試行されます）');
+  /* ── 重複チェック → 取込 ── */
+  const handleCheckDuplicate = async (item: ReceiptItem) => {
+    if (!analyzeResult) return;
+    const { date, payee } = analyzeResult.header;
+    try {
+      const res = await fetch('/api/history');
+      const result = await res.json();
+      if (result.success) {
+        const rows: Array<{ date: string; payee: string; amount: string }> = result.data;
+        const isDuplicate = rows.some(r => {
+          const rowAmt = parseInt(String(r.amount).replace(/[^0-9]/g, ''), 10);
+          return r.date === date && r.payee === payee && rowAmt === item.amount;
+        });
+        if (isDuplicate) {
+          setPendingItem(item);
+          setShowDuplicateModal(true);
+          return;
         }
+      }
+    } catch {}
+    handleSaveItem(item);
+  };
+
+  /* ── 取込 ── */
+  const handleSaveItem = async (item: ReceiptItem) => {
+    if (!file || !analyzeResult) return;
+    setIsSaving(true);
+    const loadingToast = toast.loading('スプレッドシートへ保存しています...');
+    try {
+      const formData = new FormData();
+      formData.append('saveItem', 'true');
+      formData.append('itemData', JSON.stringify(item));
+      formData.append('headerData', JSON.stringify(analyzeResult.header));
+      if (!savedDriveLink) formData.append('file', file);
+      else formData.append('driveLink', savedDriveLink);
+      const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('取込しました', { id: loadingToast });
+        if (!savedDriveLink && data.driveLink) setSavedDriveLink(data.driveLink);
+        const newSaved = savedCount + 1;
+        setSavedCount(newSaved);
+        proceedToNext(newSaved, skippedCount);
+        window.dispatchEvent(new Event('receiptUploaded'));
+      } else throw new Error(data.error || '保存に失敗しました');
+    } catch (err: any) {
+      toast.error(err.message || '保存に失敗しました', { id: loadingToast });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    const newSkipped = skippedCount + 1;
+    setSkippedCount(newSkipped);
+    setIsEditing(false);
+    proceedToNext(savedCount, newSkipped);
+  };
+
+  const proceedToNext = (saved: number, skipped: number) => {
+    if (!analyzeResult) return;
+    const next = currentItemIndex + 1;
+    if (next >= analyzeResult.items.length) {
+      setStage('done');
+    } else {
+      setCurrentItemIndex(next);
+      setIsEditing(false);
+      setEditDraft(null);
+    }
+  };
+
+  const handleEditStart = (item: ReceiptItem) => {
+    setEditDraft({ ...item });
+    setIsEditing(false);
+    setStage('edit');
+  };
+
+  const handleEditConfirm = () => {
+    if (!editDraft || !analyzeResult) return;
+    const updated = { ...analyzeResult };
+    updated.header = {
+      ...updated.header,
+      date: editDraft.date ?? updated.header.date,
+      payee: editDraft.payee ?? updated.header.payee,
+      businessNumber: editDraft.businessNumber ?? updated.header.businessNumber,
     };
-
-    // ── STEP 1: AI解析のみ ───────────────────────────────────────────────
-    const handleAnalyze = async (mode: 'total' | 'details') => {
-        if (!file) return;
-        setAnalyzingMode(mode);
-        const loadingToast = toast.loading('AIでレシートを解析しています...');
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('analyzeOnly', 'true');
-            formData.append('mode', mode);
-            formData.append('customPrompt', customPrompt);
-
-            const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            if (res.ok && data.success) {
-                toast.dismiss(loadingToast);
-                const result: AnalyzeReceiptResult = data.data;
-                setAnalyzeResult(result);
-                setCurrentItemIndex(0);
-                setSavedCount(0);
-                setSkippedCount(0);
-                setSavedDriveLink(null);
-                setIsCompleted(false);
-                setIsEditing(false);
-            } else {
-                throw new Error(data.error || '解析に失敗しました');
-            }
-        } catch (err: any) {
-            console.error(err);
-            const msg = err.message || '';
-            if (msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE') || msg.includes('内部エラー')) {
-                toast.dismiss(loadingToast);
-                window.alert('しばらく待ってから再度処理してください。\n（AIモデルがビジー状態、または通信エラーです）');
-            } else {
-                toast.error(msg, { id: loadingToast });
-            }
-        } finally {
-            setAnalyzingMode(null);
-        }
+    updated.items = [...updated.items];
+    updated.items[currentItemIndex] = {
+      itemName: editDraft.itemName,
+      amount: editDraft.amount,
+      category: editDraft.category,
+      aiComment: editDraft.aiComment,
+      is_asset: editDraft.is_asset,
+      apportionment_required: editDraft.apportionment_required,
     };
+    setAnalyzeResult(updated);
+    setStage('review');
+    setEditDraft(null);
+  };
 
-    // ── STEP 2: 品目1件を取込 ────────────────────────────────────────────
-    const handleSaveItem = async (item: ReceiptItem) => {
-        if (!file || !analyzeResult) return;
-        setIsSaving(true);
-        const loadingToast = toast.loading('スプレッドシートへ保存しています...');
-        try {
-            const formData = new FormData();
-            formData.append('saveItem', 'true');
-            formData.append('itemData', JSON.stringify(item));
-            formData.append('headerData', JSON.stringify(analyzeResult.header));
+  const handleSaveSettings = async () => {
+    localStorage.setItem('orchRecitCustomPrompt', customPrompt);
+    setIsSettingsOpen(false);
+    toast.success('設定を保存しました');
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customPrompt }),
+      });
+    } catch {}
+  };
 
-            // Driveアップロードは初回のみ
-            if (!savedDriveLink) {
-                formData.append('file', file);
-            } else {
-                formData.append('driveLink', savedDriveLink);
-            }
+  const totalItems = analyzeResult?.items.length ?? 0;
+  const currentItem = analyzeResult?.items[currentItemIndex] ?? null;
 
-            const res = await fetch('/api/process-receipt', { method: 'POST', body: formData });
-            const data = await res.json();
+  /* ════════════════════════════════════ RENDER ══════════════════════════════════ */
+  return (
+    <div style={{ width: '100%' }}>
+      {/* 補助リンク行 */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
+        <button
+          onClick={() => { try { localStorage.setItem('orchView', 'about'); } catch {} window.location.hash = ''; window.dispatchEvent(new CustomEvent('navigateAbout')); }}
+          style={btn('ghost', { fontSize: 13, padding: '8px 14px' })}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="1.6">
+            <circle cx="12" cy="12" r="9" fill="var(--bg-soft)" stroke="var(--ink-soft)" />
+            <path d="M9.5 9.5a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 4" stroke="#fff" strokeWidth="1.8" fill="none" />
+            <circle cx="12" cy="17" r="1" fill="#fff" stroke="none" />
+          </svg>
+          アプリの使い方
+        </button>
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          style={btn('ghost', { fontSize: 13, padding: '8px 14px' })}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="1.6">
+            <circle cx="12" cy="12" r="3.5" fill="var(--bg-soft)" stroke="var(--ink-soft)" />
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.5 5.5l2 2M16.5 16.5l2 2M5.5 18.5l2-2M16.5 7.5l2-2" fill="none" />
+          </svg>
+          カスタマイズ
+        </button>
+      </div>
 
-            if (res.ok && data.success) {
-                toast.success('取込しました', { id: loadingToast });
-                if (!savedDriveLink && data.driveLink) {
-                    setSavedDriveLink(data.driveLink);
-                }
-                const newSaved = savedCount + 1;
-                setSavedCount(newSaved);
-                proceedToNext(newSaved, skippedCount);
-                window.dispatchEvent(new Event('receiptUploaded'));
-            } else {
-                throw new Error(data.error || '保存に失敗しました');
-            }
-        } catch (err: any) {
-            console.error(err);
-            toast.error(err.message || '保存に失敗しました', { id: loadingToast });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // ── 破棄（スキップ） ─────────────────────────────────────────────────
-    const handleDiscard = () => {
-        const newSkipped = skippedCount + 1;
-        setSkippedCount(newSkipped);
-        setIsEditing(false);
-        proceedToNext(savedCount, newSkipped);
-    };
-
-    // ── 次の品目へ進む（または完了） ────────────────────────────────────
-    const proceedToNext = (saved: number, skipped: number) => {
-        if (!analyzeResult) return;
-        const nextIndex = currentItemIndex + 1;
-        if (nextIndex >= analyzeResult.items.length) {
-            setIsCompleted(true);
-        } else {
-            setCurrentItemIndex(nextIndex);
-            setIsEditing(false);
-            setEditDraft(null);
-        }
-    };
-
-    // ── 編集 ─────────────────────────────────────────────────────────────
-    const handleEditStart = (item: ReceiptItem) => {
-        setEditDraft({ ...item });
-        setIsEditing(true);
-    };
-
-    const handleEditConfirm = () => {
-        if (!editDraft || !analyzeResult) return;
-        const updated = { ...analyzeResult };
-        // ヘッダー情報を更新（全品目共通）
-        updated.header = {
-            ...updated.header,
-            date: editDraft.date ?? updated.header.date,
-            payee: editDraft.payee ?? updated.header.payee,
-            businessNumber: editDraft.businessNumber ?? updated.header.businessNumber,
-        };
-        // 品目情報を更新
-        updated.items = [...updated.items];
-        updated.items[currentItemIndex] = {
-            itemName: editDraft.itemName,
-            amount: editDraft.amount,
-            category: editDraft.category,
-            aiComment: editDraft.aiComment,
-            is_asset: editDraft.is_asset,
-            apportionment_required: editDraft.apportionment_required,
-        };
-        setAnalyzeResult(updated);
-        setIsEditing(false);
-        setEditDraft(null);
-    };
-
-    const handleEditCancel = () => {
-        setIsEditing(false);
-        setEditDraft(null);
-    };
-
-    const inputCls = "w-full p-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none";
-
-    const totalItems = analyzeResult?.items.length ?? 0;
-    const currentItem = analyzeResult?.items[currentItemIndex] ?? null;
-
-    return (
-        <div className="w-full max-w-2xl mx-auto mt-8">
-            <div className="flex justify-center gap-3 mb-4">
-                <Link
-                    href="/about"
-                    className="flex items-center text-sm text-slate-600 hover:text-blue-600 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
-                >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    アプリの使い方
-                </Link>
-                <button
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="flex items-center text-sm text-slate-600 hover:text-blue-600 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 transition-colors"
-                >
-                    <Settings className="w-4 h-4 mr-2" />
-                    カスタマイズ
-                </button>
+      {/* ── DropZone ── */}
+      {stage === 'dropzone' && (
+        <div style={card()}>
+          <div
+            ref={dropRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              padding: '44px 24px 36px', textAlign: 'center', cursor: 'pointer',
+              border: `2px dashed ${dropHover ? 'var(--primary)' : 'var(--border-strong)'}`,
+              borderRadius: 'var(--radius)', margin: 12,
+              background: dropHover ? '#e3f4e560' : 'transparent',
+              transition: 'all .22s ease', position: 'relative', overflow: 'hidden',
+            }}
+          >
+            {/* 中央アイコン */}
+            <div style={{ position: 'relative', width: 104, height: 104, margin: '0 auto 18px' }}>
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'radial-gradient(circle, var(--primary-soft), transparent 70%)',
+                animation: 'pulse 2.4s ease-in-out infinite',
+              }} />
+              <div style={{
+                position: 'absolute', inset: 14, borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 14px 30px -10px #72D07C88',
+                transform: dropHover ? 'scale(1.06)' : 'scale(1)',
+                transition: 'transform .3s ease',
+              }}>
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">
+                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                  <path d="M12 4v12M7 9l5-5 5 5" />
+                  <circle cx="12" cy="10" r="4" fill="#ffffff33" stroke="none" />
+                </svg>
+              </div>
             </div>
-            <AnimatePresence mode="wait">
-                {!file ? (
-                    /* ── ドロップゾーン ── */
-                    <motion.div
-                        key="dropzone"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-300 rounded-2xl bg-white shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer group"
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <div className="p-4 bg-blue-100 text-blue-600 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                            <UploadCloud size={40} />
-                        </div>
-                        <h3 className="text-xl font-semibold text-slate-700 mb-2">
-                            レシートを撮影、選択、ドロップ
-                        </h3>
-                        <p className="text-sm text-slate-500 mb-6">
-                            PNG, JPG, JPEG 等の画像形式に対応しています
-                        </p>
-                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                        <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleFileChange} />
-                        <div className="flex gap-4 w-full justify-center">
-                            <button
-                                type="button"
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm transition-all"
-                                onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
-                            >
-                                <Camera size={18} />カメラで撮影
-                            </button>
-                            <button
-                                type="button"
-                                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
-                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                            >
-                                <FileImage size={18} />端末から選択
-                            </button>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="preview"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-                    >
-                        {/* ヘッダー */}
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-medium text-slate-800 flex items-center gap-2">
-                                <FileImage className="text-blue-500" size={20} />
-                                選択された画像
-                            </h3>
-                            {!analyzingMode && !analyzeResult && (
-                                <button onClick={resetAll} className="text-sm text-slate-500 hover:text-slate-800">
-                                    キャンセル
-                                </button>
-                            )}
-                        </div>
 
-                        <div className="p-6">
-                            {/* 画像プレビュー */}
-                            <div className="relative w-full h-48 md:h-64 rounded-xl overflow-hidden bg-slate-100 mb-6 flex items-center justify-center">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={previewUrl!} alt="Preview" className="object-contain w-full h-full" />
-                            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px' }}>
+              レシートを撮影・選択・ドロップ
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: '0 0 22px' }}>
+              PNG / JPG / HEIC 対応・自動で最適化されます
+            </p>
 
-                            {/* ── 解析前 ── */}
-                            {!analyzeResult && (
-                                <div className="flex gap-4">
-                                    <button
-                                        onClick={() => handleAnalyze('total')}
-                                        disabled={analyzingMode !== null}
-                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all shadow-sm ${analyzingMode === 'total'
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                                                : analyzingMode === 'details'
-                                                    ? 'bg-blue-200 text-white cursor-not-allowed opacity-70'
-                                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                                            }`}
-                                    >
-                                        {analyzingMode === 'total' ? (
-                                            <><Loader2 className="animate-spin" size={20} />AI解析中...</>
-                                        ) : (
-                                            <><UploadCloud size={20} />合計額で取込</>
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={() => handleAnalyze('details')}
-                                        disabled={analyzingMode !== null}
-                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all shadow-sm ${analyzingMode === 'details'
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                                                : analyzingMode === 'total'
-                                                    ? 'bg-blue-200 text-white cursor-not-allowed opacity-70'
-                                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                                            }`}
-                                    >
-                                        {analyzingMode === 'details' ? (
-                                            <><Loader2 className="animate-spin" size={20} />AI解析中...</>
-                                        ) : (
-                                            <><UploadCloud size={20} />明細で取込</>
-                                        )}
-                                    </button>
-                                </div>
-                            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                style={btn('primary')}
+                onClick={e => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff33" stroke="#fff" strokeWidth="1.6">
+                  <rect x="3" y="7" width="18" height="13" rx="3" />
+                  <circle cx="12" cy="13.5" r="3.5" fill="none" />
+                  <path d="M8.5 7 10 4.5h4L15.5 7" fill="none" />
+                </svg>
+                カメラで撮影
+              </button>
+              <button
+                style={btn('ghost')}
+                onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="1.6">
+                  <path d="M6 3h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                  <path d="M14 3v4h4" fill="none" />
+                </svg>
+                端末から選択
+              </button>
+            </div>
 
-                            {/* ── 全件完了 ── */}
-                            {analyzeResult && isCompleted && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="bg-green-50 border border-green-200 rounded-xl p-6 text-center"
-                                >
-                                    <CheckCircle className="text-green-500 mx-auto mb-3" size={40} />
-                                    <p className="text-lg font-semibold text-green-700 mb-1">すべての品目の確認が完了しました</p>
-                                    <p className="text-sm text-slate-500 mb-6">
-                                        取込 <span className="font-bold text-green-600">{savedCount}</span> 件　／
-                                        破棄 <span className="font-bold text-slate-400">{skippedCount}</span> 件
-                                    </p>
-                                    <button
-                                        onClick={resetAll}
-                                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-sm"
-                                    >
-                                        次のレシートへ
-                                    </button>
-                                </motion.div>
-                            )}
-
-                            {/* ── 品目確認フロー ── */}
-                            {analyzeResult && !isCompleted && currentItem && (
-                                <motion.div
-                                    key={currentItemIndex}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                >
-                                    {/* 完了件数バナー */}
-                                    <div className="flex items-center justify-between mb-4 px-1">
-                                        <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
-                                            <ListChecks size={18} className="text-blue-500" />
-                                            <span>
-                                                <span className="font-bold text-blue-600">{totalItems}</span> 件の読み取りが完了しました
-                                            </span>
-                                        </div>
-                                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-                                            {currentItemIndex + 1} / {totalItems}
-                                        </span>
-                                    </div>
-
-                                    {/* ヘッダー情報（支払先・日付） */}
-                                    <div className="mb-3 px-1 flex gap-4 text-xs text-slate-500">
-                                        <span>📅 {analyzeResult.header.date || '-'}</span>
-                                        <span>🏪 {analyzeResult.header.payee || '-'}</span>
-                                        <span>💳 {analyzeResult.header.paymentMethod || '-'}</span>
-                                    </div>
-
-                                    {isEditing && editDraft ? (
-                                        /* ── 編集フォーム ── */
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            className="bg-amber-50 border border-amber-200 rounded-xl p-5"
-                                        >
-                                            <div className="flex items-center gap-2 text-amber-700 font-semibold mb-4 pb-3 border-b border-amber-200/50">
-                                                <Pencil size={18} />内容を修正
-                                            </div>
-                                            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 items-center text-sm">
-                                                <label className="text-slate-500 whitespace-nowrap">購入日</label>
-                                                <input
-                                                    type="date"
-                                                    className={inputCls}
-                                                    value={editDraft.date ?? analyzeResult!.header.date}
-                                                    onChange={e => setEditDraft({ ...editDraft, date: e.target.value })}
-                                                />
-                                                <label className="text-slate-500 whitespace-nowrap">支払先</label>
-                                                <input
-                                                    type="text"
-                                                    className={inputCls}
-                                                    value={editDraft.payee ?? analyzeResult!.header.payee}
-                                                    onChange={e => setEditDraft({ ...editDraft, payee: e.target.value })}
-                                                />
-                                                <label className="text-slate-500 whitespace-nowrap">事業者番号</label>
-                                                <input
-                                                    type="text"
-                                                    className={inputCls}
-                                                    value={editDraft.businessNumber ?? analyzeResult!.header.businessNumber}
-                                                    onChange={e => setEditDraft({ ...editDraft, businessNumber: e.target.value })}
-                                                />
-                                                <label className="text-slate-500 whitespace-nowrap">品目名</label>
-                                                <input
-                                                    type="text"
-                                                    className={inputCls}
-                                                    value={editDraft.itemName || ''}
-                                                    onChange={e => setEditDraft({ ...editDraft, itemName: e.target.value })}
-                                                />
-                                                <label className="text-slate-500 whitespace-nowrap">金額</label>
-                                                <input
-                                                    type="number"
-                                                    className={inputCls}
-                                                    value={editDraft.amount || ''}
-                                                    onChange={e => setEditDraft({ ...editDraft, amount: Number(e.target.value) })}
-                                                />
-                                                <label className="text-slate-500 whitespace-nowrap">科目</label>
-                                                <input
-                                                    type="text"
-                                                    className={inputCls}
-                                                    value={editDraft.category || ''}
-                                                    onChange={e => setEditDraft({ ...editDraft, category: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="mt-5 flex gap-3">
-                                                <button
-                                                    onClick={handleEditConfirm}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-all"
-                                                >
-                                                    <Check size={18} />修正を確定
-                                                </button>
-                                                <button
-                                                    onClick={handleEditCancel}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-all"
-                                                >
-                                                    <X size={18} />キャンセル
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    ) : (
-                                        /* ── 品目確認カード ── */
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            className="bg-blue-50 border border-blue-200 rounded-xl p-5"
-                                        >
-                                            <div className="flex items-center gap-2 text-blue-700 font-semibold mb-4 pb-3 border-b border-blue-200/50">
-                                                <CheckCircle size={20} />
-                                                品目 {currentItemIndex + 1}
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                                                <div className="text-slate-500">品目名</div>
-                                                <div className="font-medium">{currentItem.itemName || '-'}</div>
-                                                <div className="text-slate-500">金額</div>
-                                                <div className="font-semibold text-lg">
-                                                    {currentItem.amount ? `¥${currentItem.amount.toLocaleString()}` : '-'}
-                                                </div>
-                                                <div className="text-slate-500">科目</div>
-                                                <div className="font-medium">
-                                                    <span className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600">
-                                                        {currentItem.category || '-'}
-                                                    </span>
-                                                </div>
-                                                <div className="text-slate-500">AIコメント</div>
-                                                <div className="font-medium text-xs text-slate-600 leading-relaxed">
-                                                    {currentItem.aiComment || '-'}
-                                                </div>
-                                            </div>
-                                            {/* 警告バッジ */}
-                                            {(currentItem.is_asset || currentItem.apportionment_required) && (
-                                                <div className="mt-3 flex flex-wrap gap-2">
-                                                    {currentItem.is_asset && (
-                                                        <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 border border-orange-200 rounded-full font-medium">
-                                                            ⚠ 固定資産候補（10万円以上）
-                                                        </span>
-                                                    )}
-                                                    {currentItem.apportionment_required && (
-                                                        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 border border-yellow-200 rounded-full font-medium">
-                                                            📊 按分が必要な項目
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* 取込 / 修正 / 破棄 ボタン */}
-                                            <div className="mt-6 flex gap-2">
-                                                <button
-                                                    onClick={() => handleSaveItem(currentItem)}
-                                                    disabled={isSaving}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm"
-                                                >
-                                                    {isSaving ? (
-                                                        <><Loader2 className="animate-spin" size={18} />保存中...</>
-                                                    ) : (
-                                                        <><Download size={18} />取込</>
-                                                    )}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditStart(currentItem)}
-                                                    disabled={isSaving}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-300 text-white rounded-xl font-semibold hover:bg-amber-400 disabled:opacity-70 transition-all"
-                                                >
-                                                    <Pencil size={18} />修正
-                                                </button>
-                                                <button
-                                                    onClick={handleDiscard}
-                                                    disabled={isSaving}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 disabled:opacity-70 transition-all"
-                                                >
-                                                    <Trash2 size={18} />破棄
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── 特記科目設定モーダル ── */}
-            <AnimatePresence>
-                {isSettingsOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
-                        onClick={() => setIsSettingsOpen(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                                    <Settings className="text-slate-500 w-5 h-5" />
-                                    科目判断のカスタマイズ
-                                </h3>
-                                <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-slate-600">
-                                    <X size={20} />
-                                </button>
-                            </div>
-                            <div className="p-6 flex-1">
-                                <p className="text-sm text-slate-600 mb-4 leading-relaxed text-left">
-                                    各地域での特記事項や、ご自身でカスタマイズしたい条件を入力してください。<br/>
-                                    AIがレシートを解析する際、<strong>この内容を最優先の判断ルール</strong>として使用します。
-                                </p>
-                                <textarea
-                                    value={customPrompt}
-                                    onChange={(e) => setCustomPrompt(e.target.value)}
-                                    maxLength={500}
-                                    rows={7}
-                                    className="w-full p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-slate-50 select-text"
-                                    placeholder={`## 長野税務署 特記科目\n- 作業用衣料費: 長靴、地下足袋、農作業着、手袋、麦わら帽子、合羽、保護メガネなど。\n- 荷造運賃手数料: 発送用段ボール、緩衝材、送料に加え、JA等の「販売手数料」をここに含める。`}
-                                />
-                                <div className="text-right text-xs text-slate-400 mt-2">
-                                    {customPrompt.length} / 500
-                                </div>
-                            </div>
-                            <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-white">
-                                <button
-                                    onClick={() => setIsSettingsOpen(false)}
-                                    className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                                >
-                                    キャンセル
-                                </button>
-                                <button
-                                    onClick={handleSaveSettings}
-                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition-colors"
-                                >
-                                    設定を保存
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Sprout 水滴装飾 */}
+            <div style={{ position: 'absolute', bottom: -10, left: -10, right: -10, height: 80, pointerEvents: 'none' }}>
+              {[0, 1, 2, 3, 4, 5].map(i => (
+                <div key={i} style={{
+                  position: 'absolute', bottom: 0, left: `${15 + i * 14}%`,
+                  width: 4, height: 4, borderRadius: '50%',
+                  background: 'var(--primary)',
+                  opacity: 0.55,
+                  animation: `drip ${3 + i * 0.5}s ease-in infinite ${i * 0.3}s`,
+                }} />
+              ))}
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      {/* ── PreviewCard ── */}
+      {stage === 'preview' && (
+        <div style={card()}>
+          <div style={{
+            padding: '16px 22px', borderBottom: '1px solid var(--border)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: 'var(--ink)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="1.6">
+                <path d="M6 3h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                <path d="M14 3v4h4" fill="none" />
+              </svg>
+              選択された画像
+            </div>
+            <button
+              onClick={resetAll}
+              style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}
+            >
+              キャンセル
+            </button>
+          </div>
+          <div style={{ padding: 22 }}>
+            {/* 実画像プレビュー */}
+            <div style={{
+              height: 220, borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-soft)', overflow: 'hidden',
+              border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 18,
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={previewUrl!} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                style={{ ...btn('primary'), flex: 1 }}
+                onClick={() => handleAnalyze('total')}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
+                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M12 4v12M7 9l5-5 5 5" />
+                </svg>
+                合計額で取込
+              </button>
+              <button
+                style={{ ...btn('secondary'), flex: 1 }}
+                onClick={() => handleAnalyze('details')}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
+                  <rect x="3" y="4" width="18" height="16" rx="2" fill="#ffffff33" stroke="#fff" />
+                  <path d="M8 9h9M8 13h9M8 17h6" stroke="#fff" strokeWidth="1.4" />
+                </svg>
+                明細で取込
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--ink-mute)', textAlign: 'center', marginTop: 10 }}>
+              「明細で取込」は品目ごとに複数件として記録します
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── AnalyzingCard ── */}
+      {stage === 'analyzing' && (
+        <div style={card()}>
+          <div style={{ position: 'relative', padding: '48px 24px', textAlign: 'center', overflow: 'hidden' }}>
+            {/* スキャンレシート + 浮かぶ葉 */}
+            <div style={{ position: 'relative', width: 180, height: 220, margin: '0 auto 24px' }}>
+              {/* レシートモック */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: '#fff', border: '1px solid var(--border)',
+                borderRadius: '4px 4px 10px 10px', padding: '14px 12px',
+                boxShadow: '0 10px 26px -12px rgba(0,0,0,0.2)',
+                fontFamily: 'var(--font-mono)', fontSize: 8, color: '#555',
+                clipPath: 'polygon(0 0, 100% 0, 100% 96%, 93% 100%, 86% 96%, 78% 100%, 71% 96%, 64% 100%, 57% 96%, 50% 100%, 43% 96%, 36% 100%, 29% 96%, 22% 100%, 14% 96%, 7% 100%, 0 96%)',
+              }}>
+                <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 6, fontSize: 10 }}>JA ながの</div>
+                {['苗 トマト.....¥4,800', 'ハサミ.........¥2,480', '液体肥料.......¥3,200', '─────────────', '合計.........¥10,480'].map((l, i) => (
+                  <div key={i} style={{ marginBottom: 3 }}>{l}</div>
+                ))}
+              </div>
+              {/* スキャンバー */}
+              <div style={{
+                position: 'absolute', left: -6, right: -6, height: 3,
+                background: 'linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent)',
+                boxShadow: '0 0 18px var(--primary), 0 0 32px #1794D788',
+                animation: 'scan 2.8s cubic-bezier(.6,0,.4,1) infinite',
+                borderRadius: 4,
+              }} />
+              {/* 認識マーカー */}
+              {[{ t: 40, l: 14, w: 70 }, { t: 90, l: 14, w: 100 }, { t: 110, l: 14, w: 90 }, { t: 130, l: 14, w: 110 }].map((b, i) => (
+                <div key={i} style={{
+                  position: 'absolute', top: b.t, left: b.l, width: b.w, height: 10,
+                  border: '1.5px solid var(--secondary)', borderRadius: 3,
+                  opacity: 0, animation: `markerIn 2.5s ease ${i * 0.3}s infinite`,
+                }} />
+              ))}
+              {/* 浮かぶ葉 */}
+              {[0, 1, 2, 3].map(i => (
+                <svg key={i} width="20" height="20" viewBox="0 0 24 24" style={{
+                  position: 'absolute', top: 40 + i * 40, left: i % 2 ? '20%' : '80%',
+                  animation: `float ${4 + i}s ease-in-out infinite ${i * 0.3}s`, opacity: 0.6,
+                }}>
+                  <path d="M20 4c-7 0-14 3-14 11 0 3 2 5 5 5 8 0 11-8 11-16z" fill="var(--primary)" />
+                </svg>
+              ))}
+            </div>
+
+            {/* ステータスピル */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '6px 14px', borderRadius: 999,
+              background: 'var(--primary-soft)', color: 'var(--primary)',
+              fontSize: 12, fontWeight: 600, marginBottom: 14,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', animation: 'blink 1s ease-in-out infinite' }} />
+              AI解析中
+            </div>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px' }}>
+              レシートを読み取っています
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>
+              日付・支払先・品目・金額・科目を抽出中…
+            </p>
+            <div style={{ marginTop: 24, display: 'flex', gap: 8, justifyContent: 'center' }}>
+              {['文字認識', '明細抽出', '科目判定'].map((s, i) => (
+                <div key={s} style={{
+                  padding: '6px 12px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                  background: i < 2 ? 'var(--primary-soft)' : 'var(--bg-soft)',
+                  color: i < 2 ? 'var(--primary)' : 'var(--ink-mute)',
+                  border: `1px solid ${i < 2 ? '#72D07C33' : 'var(--border)'}`,
+                }}>
+                  {i < 2 ? '✓ ' : '・ '}{s}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ReviewCard ── */}
+      {stage === 'review' && currentItem && (
+        <div style={card()}>
+          {/* ヘッダー */}
+          <div style={{
+            padding: '16px 22px', borderBottom: '1px solid var(--border)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink-soft)', fontSize: 13, fontWeight: 500 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="1.6">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M8 9h9M8 13h9M8 17h6" stroke="#fff" strokeWidth="1.4" />
+              </svg>
+              <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{totalItems}件</span>の読み取りが完了しました
+            </div>
+            <span style={pill('neutral')}>{currentItemIndex + 1} / {totalItems}</span>
+          </div>
+
+          <div style={{ padding: 22 }}>
+            {/* ヘッダーメタ */}
+            <div style={{
+              display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16,
+              padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-soft)', border: '1px solid var(--border)',
+            }}>
+              {[
+                { label: '購入日', value: analyzeResult!.header.date },
+                { label: '支払先', value: analyzeResult!.header.payee },
+                { label: '支払方法', value: analyzeResult!.header.paymentMethod },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-mute)', letterSpacing: '0.08em', fontWeight: 600 }}>{label.toUpperCase()}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{value || '-'}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* プログレスドット */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+              {Array.from({ length: totalItems }).map((_, i) => (
+                <div key={i} style={{
+                  flex: 1, height: 4, borderRadius: 2,
+                  background: i <= currentItemIndex ? 'var(--primary)' : 'var(--border)',
+                  transition: 'background .3s',
+                }} />
+              ))}
+            </div>
+
+            {/* 品目カード */}
+            <div style={{
+              padding: 20, borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, #e3f4e580, #d9edf840)',
+              border: '1px solid #72D07C22', position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: -20, right: -20, width: 100, height: 100,
+                borderRadius: '50%', background: '#72D07C10',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--primary)', fontWeight: 700, fontSize: 14, position: 'relative' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)" stroke="var(--primary)">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m8 12 3 3 5-6" fill="none" stroke="#fff" strokeWidth="2" />
+                </svg>
+                品目 {currentItemIndex + 1}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr', rowGap: 12, columnGap: 14, position: 'relative' }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', alignSelf: 'center', fontWeight: 600 }}>品目名</div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 15 }}>{currentItem.itemName || '-'}</div>
+
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', alignSelf: 'center', fontWeight: 600 }}>金額</div>
+                <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 22, fontFamily: 'var(--font-mono)' }}>
+                  ¥{currentItem.amount?.toLocaleString() || '-'}
+                </div>
+
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', alignSelf: 'center', fontWeight: 600 }}>科目</div>
+                <div><span style={pill('primary')}>{currentItem.category || '-'}</span></div>
+
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', alignSelf: 'start', fontWeight: 600, paddingTop: 2 }}>AI所見</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.6 }}>{currentItem.aiComment || '-'}</div>
+              </div>
+              {(currentItem.is_asset || currentItem.apportionment_required) && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {currentItem.is_asset && <span style={pill('warn')}>⚠ 固定資産候補</span>}
+                  {currentItem.apportionment_required && <span style={pill('warn')}>📊 按分が必要</span>}
+                </div>
+              )}
+            </div>
+
+            {/* アクション */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button
+                style={{ ...btn('primary'), flex: 1 }}
+                onClick={() => handleCheckDuplicate(currentItem)}
+                disabled={isSaving}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                {isSaving ? '保存中...' : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
+                      <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M12 4v12M7 11l5 5 5-5" />
+                    </svg>
+                    取込
+                  </>
+                )}
+              </button>
+              <button
+                style={{ ...btn('soft'), flex: 1 }}
+                onClick={() => handleEditStart(currentItem)}
+                disabled={isSaving}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="1.6">
+                  <path d="M4 20h4l10-10-4-4L4 16v4z" />
+                  <path d="m14 6 4 4" fill="none" />
+                </svg>
+                修正
+              </button>
+              <button
+                style={{ ...btn('ghost'), flex: 1 }}
+                onClick={handleDiscard}
+                disabled={isSaving}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="var(--ink-soft)" strokeWidth="1.6">
+                  <path d="M5 7h14l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z" />
+                  <path d="M9 7V4h6v3M3 7h18M10 11v7M14 11v7" fill="none" />
+                </svg>
+                破棄
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EditCard ── */}
+      {stage === 'edit' && editDraft && (
+        <div style={card()}>
+          <div style={{
+            padding: '16px 22px', borderBottom: '1px solid var(--border)',
+            background: 'var(--warn-soft)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--warn)', fontWeight: 700 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#d98e2b22" stroke="var(--warn)" strokeWidth="1.6">
+                <path d="M4 20h4l10-10-4-4L4 16v4z" />
+                <path d="m14 6 4 4" fill="none" />
+              </svg>
+              内容を修正
+            </div>
+          </div>
+          <div style={{ padding: 22, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[
+              { label: '購入日', key: 'date', value: editDraft.date ?? analyzeResult!.header.date, type: 'date', full: false },
+              { label: '支払先', key: 'payee', value: editDraft.payee ?? analyzeResult!.header.payee, type: 'text', full: false },
+              { label: '品目名', key: 'itemName', value: editDraft.itemName, type: 'text', full: true },
+              { label: '金額', key: 'amount', value: String(editDraft.amount), type: 'number', full: false },
+              { label: '科目', key: 'category', value: editDraft.category, type: 'text', full: false },
+            ].map(({ label, key, value, type, full }) => (
+              <div key={key} style={{ gridColumn: full ? '1 / -1' : 'auto' }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
+                <input
+                  type={type}
+                  defaultValue={value}
+                  style={inputStyle}
+                  onChange={e => {
+                    const v = type === 'number' ? Number(e.target.value) : e.target.value;
+                    setEditDraft(prev => prev ? { ...prev, [key]: v } : prev);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: '0 22px 22px', display: 'flex', gap: 10 }}>
+            <button
+              style={{ ...btn('warn'), flex: 1 }}
+              onClick={handleEditConfirm}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onMouseLeave={e => (e.currentTarget.style.transform = '')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffffff33" stroke="#fff" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="m8 12 3 3 5-6" fill="none" stroke="#fff" />
+              </svg>
+              修正を確定
+            </button>
+            <button
+              style={{ ...btn('ghost'), flex: 1 }}
+              onClick={() => setStage('review')}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onMouseLeave={e => (e.currentTarget.style.transform = '')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="1.6">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── DoneCard ── */}
+      {stage === 'done' && (
+        <div style={{ ...card(), textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{
+            width: 72, height: 72, margin: '0 auto 16px', borderRadius: '50%',
+            background: 'var(--ok-soft)', color: 'var(--ok)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'pop .5s ease-out',
+          }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--ok)" stroke="var(--ok)">
+              <circle cx="12" cy="12" r="9" />
+              <path d="m8 12 3 3 5-6" fill="none" stroke="#fff" strokeWidth="2" />
+            </svg>
+          </div>
+          <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px' }}>
+            すべての確認が完了しました
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 20px' }}>
+            取込 <b style={{ color: 'var(--ok)' }}>{savedCount}</b> 件 ／ 破棄 <b>{skippedCount}</b> 件
+          </p>
+          <button
+            style={btn('primary', { fontSize: 15, padding: '14px 22px' })}
+            onClick={resetAll}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onMouseUp={e => (e.currentTarget.style.transform = '')}
+            onMouseLeave={e => (e.currentTarget.style.transform = '')}
+          >
+            次のレシートへ →
+          </button>
+        </div>
+      )}
+
+      {/* ── hidden inputs ── */}
+      <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+      <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleFileChange} />
+
+      {/* ── 重複確認モーダル ── */}
+      {showDuplicateModal && pendingItem && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: 'rgba(12,24,18,0.4)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            animation: 'fadeIn .2s ease',
+          }}
+          onClick={() => setShowDuplicateModal(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 460, background: 'var(--surface)',
+              borderRadius: 'var(--radius)', overflow: 'hidden',
+              boxShadow: '0 30px 80px -20px rgba(16,40,28,0.35)',
+              animation: 'slideUp .25s ease',
+            }}
+          >
+            {/* ヘッダー */}
+            <div style={{
+              padding: '18px 22px', borderBottom: '1px solid var(--border)',
+              background: 'var(--warn-soft)',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--warn)" stroke="var(--warn)">
+                <path d="M12 3 2 21h20L12 3z" />
+                <path d="M12 10v4M12 17v.5" fill="none" stroke="#fff" strokeWidth="1.8" />
+              </svg>
+              <span style={{ fontWeight: 700, color: 'var(--warn)', fontSize: 15 }}>重複の可能性</span>
+            </div>
+            {/* 本文 */}
+            <div style={{ padding: '22px 22px 18px' }}>
+              <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7, margin: 0 }}>
+                購入日・支払先・金額が同一の明細が存在します。<br />
+                このまま取り込む場合は「取込」ボタンを押してください。
+              </p>
+              {/* 該当品目情報 */}
+              <div style={{
+                marginTop: 16, padding: '12px 14px',
+                background: 'var(--bg-soft)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                fontSize: 12, color: 'var(--ink-soft)',
+                display: 'flex', flexDirection: 'column', gap: 4,
+              }}>
+                <div><span style={{ color: 'var(--ink-mute)', fontWeight: 600 }}>品目：</span>{pendingItem.itemName}</div>
+                <div><span style={{ color: 'var(--ink-mute)', fontWeight: 600 }}>金額：</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>¥{pendingItem.amount.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            {/* ボタン */}
+            <div style={{ padding: '0 22px 22px', display: 'flex', gap: 10 }}>
+              <button
+                style={{ ...btn('primary'), flex: 1 }}
+                onClick={() => {
+                  setShowDuplicateModal(false);
+                  handleSaveItem(pendingItem);
+                  setPendingItem(null);
+                }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-fg)" strokeWidth="1.6">
+                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M12 4v12M7 11l5 5 5-5" />
+                </svg>
+                取込
+              </button>
+              <button
+                style={{ ...btn('ghost'), flex: 1 }}
+                onClick={() => setShowDuplicateModal(false)}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              >
+                戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SettingsModal ── */}
+      {isSettingsOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: 'rgba(12,24,18,0.4)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            animation: 'fadeIn .2s ease',
+          }}
+          onClick={() => setIsSettingsOpen(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 540, background: 'var(--surface)',
+              borderRadius: 'var(--radius)', overflow: 'hidden',
+              boxShadow: '0 30px 80px -20px rgba(16,40,28,0.35)',
+              animation: 'slideUp .25s ease',
+            }}
+          >
+            <div style={{
+              padding: '18px 22px', borderBottom: '1px solid var(--border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: 'var(--bg-soft)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--ink)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="1.6">
+                  <circle cx="12" cy="12" r="3.5" />
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.5 5.5l2 2M16.5 16.5l2 2M5.5 18.5l2-2M16.5 7.5l2-2" fill="none" />
+                </svg>
+                科目判断のカスタマイズ
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-mute)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ padding: 22 }}>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 14px' }}>
+                各地域の慣習や、ご自身の特記事項を入力してください。<br />
+                AIがレシートを解析する際、<b style={{ color: 'var(--ink)' }}>最優先の判断ルール</b>として使用します。
+              </p>
+              <textarea
+                value={customPrompt}
+                onChange={e => setCustomPrompt(e.target.value)}
+                maxLength={500}
+                rows={8}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)', background: 'var(--bg-soft)',
+                  fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6,
+                  color: 'var(--ink)', outline: 'none', resize: 'none', boxSizing: 'border-box',
+                }}
+                placeholder="## 長野税務署 特記科目&#10;- 作業用衣料費: 長靴、地下足袋、農作業着…"
+              />
+              <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--ink-mute)', marginTop: 6 }}>
+                {customPrompt.length} / 500
+              </div>
+            </div>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button style={btn('ghost')} onClick={() => setIsSettingsOpen(false)}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}>キャンセル</button>
+              <button style={btn('primary')} onClick={handleSaveSettings}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = '')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}>設定を保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

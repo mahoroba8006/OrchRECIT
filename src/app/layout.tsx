@@ -1,10 +1,21 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Noto_Sans_JP, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import AuthProvider from '@/components/AuthProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+const notoSansJP = Noto_Sans_JP({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Orch.RECIT',
@@ -37,7 +48,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-slate-100 to-slate-200`}>
+      <body className={`${notoSansJP.className} ${jetbrainsMono.variable} min-h-screen`}
+            style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
         <AuthProvider>
           {children}
           <Toaster position="bottom-center" />
