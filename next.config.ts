@@ -18,8 +18,8 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Cloudflare Pages / OpenNext 向けの設定
   skipTrailingSlashRedirect: true,
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);

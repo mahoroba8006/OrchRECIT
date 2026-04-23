@@ -41,7 +41,6 @@ const inputStyle: React.CSSProperties = {
   background: '#fff',
 };
 
-const FILTER_CHIPS = ['すべて', '種苗費', '肥料費', '消耗品費', '動力光熱費', '今月', '先月'];
 
 export default function HistoryViewer() {
   const [data, setData] = useState<ReceiptRow[]>([]);
@@ -49,7 +48,9 @@ export default function HistoryViewer() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isAiSearchActive, setIsAiSearchActive] = useState(false);
   const [activeChip, setActiveChip] = useState('すべて');
+  const [selectedYearMonth, setSelectedYearMonth] = useState('');
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<ReceiptRow & { oldDate: string }>>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,22 +66,14 @@ export default function HistoryViewer() {
   }, [status]);
 
   useEffect(() => {
-    applyChipFilter(activeChip, data);
-  }, [data, activeChip]);
+    applyFilters(activeChip, selectedYearMonth, data);
+  }, [data, activeChip, selectedYearMonth]);
 
-  const applyChipFilter = (chip: string, rows: ReceiptRow[]) => {
-    if (chip === 'すべて') { setFilteredData(rows); return; }
-    const now = new Date();
-    if (chip === '今月') {
-      const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      setFilteredData(rows.filter(r => r.date.startsWith(ym)));
-    } else if (chip === '先月') {
-      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      setFilteredData(rows.filter(r => r.date.startsWith(ym)));
-    } else {
-      setFilteredData(rows.filter(r => r.category === chip));
-    }
+  const applyFilters = (chip: string, ym: string, rows: ReceiptRow[]) => {
+    let result = rows;
+    if (ym) result = result.filter(r => r.date.startsWith(ym));
+    if (chip !== 'すべて') result = result.filter(r => r.category === chip);
+    setFilteredData(result);
     setCurrentPage(1);
   };
 
@@ -114,6 +107,7 @@ export default function HistoryViewer() {
       if (result.success) {
         setData(result.data.reverse());
         setCurrentPage(1);
+        setIsAiSearchActive(true);
         toast.success(`${result.data.length}件見つかりました`, { id: t });
       } else throw new Error(result.error);
     } catch (err: any) { toast.error(err.message, { id: t }); }
@@ -155,6 +149,12 @@ export default function HistoryViewer() {
     } catch (err: any) { toast.error(err.message || '更新に失敗しました', { id: t }); }
   };
 
+  const categoryChips = Array.from(new Set(data.map(r => r.category).filter(Boolean))).sort();
+  const filterChips = ['すべて', ...categoryChips];
+  const yearMonths = Array.from(new Set(
+    data.map(r => r.date?.slice(0, 7)).filter(Boolean)
+  )).sort().reverse();
+
   const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
   const pagedData = filteredData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
@@ -168,12 +168,13 @@ export default function HistoryViewer() {
           HISTORY · AI SEARCH
         </div>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', margin: '4px 0 0', letterSpacing: '-0.02em' }}>
-          読取履歴・AI検索
+          明細・AI検索
         </h2>
       </div>
 
       {/* 検索バー */}
-      <form onSubmit={handleSearch} style={{ position: 'relative', marginBottom: 18 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 18 }}>
+      <form onSubmit={handleSearch} style={{ position: 'relative', flex: 1 }}>
         <input
           type="text"
           placeholder='AIに聞く　例：「先月の肥料費」「トマト関連の支出」'
@@ -214,13 +215,33 @@ export default function HistoryViewer() {
           {isSearching ? '検索中...' : '検索'}
         </button>
       </form>
+      {isAiSearchActive && (
+        <button
+          onClick={() => { fetchHistory(); setIsAiSearchActive(false); setSearchQuery(''); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '12px 16px', borderRadius: 'var(--radius-sm)',
+            background: '#fff', color: 'var(--ink-soft)',
+            border: '1px solid var(--border)', fontWeight: 600, fontSize: 13,
+            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          全件表示
+        </button>
+      )}
+      </div>
 
-      {/* フィルタチップ */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {FILTER_CHIPS.map(c => (
+      {/* フィルタチップ + 年月ドロップダウン */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        {filterChips.map(c => (
           <button
             key={c}
-            onClick={() => { setActiveChip(c); applyChipFilter(c, data); }}
+            onClick={() => { setActiveChip(c); if (c === 'すべて') setSelectedYearMonth(''); }}
             style={{
               padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
               border: `1px solid ${activeChip === c ? 'var(--primary)' : 'var(--border)'}`,
@@ -231,6 +252,29 @@ export default function HistoryViewer() {
             }}
           >{c}</button>
         ))}
+        <div style={{ marginLeft: 'auto' }}>
+          <select
+            value={selectedYearMonth}
+            onChange={e => setSelectedYearMonth(e.target.value)}
+            style={{
+              padding: '6px 28px 6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              border: `1px solid ${selectedYearMonth ? 'var(--primary)' : 'var(--border)'}`,
+              background: selectedYearMonth ? 'var(--primary-soft)' : '#fff',
+              color: selectedYearMonth ? 'var(--primary)' : 'var(--ink-soft)',
+              cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+              appearance: 'none', WebkitAppearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+            }}
+          >
+            <option value="">すべての月</option>
+            {yearMonths.map(ym => {
+              const [y, m] = ym.split('-');
+              return <option key={ym} value={ym}>{y}年{parseInt(m)}月</option>;
+            })}
+          </select>
+        </div>
       </div>
 
       {/* テーブル */}

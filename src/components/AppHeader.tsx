@@ -24,7 +24,7 @@ function SproutLogo() {
 
 const NAV_ITEMS: [View, string][] = [
   ['home', 'ホーム'],
-  ['history', '履歴'],
+  ['history', '明細'],
 ];
 
 export default function AppHeader({ view, setView, userName, isLoggedIn }: Props) {
@@ -44,14 +44,13 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
         maxWidth: 1120,
         margin: '0 auto',
         padding: '10px 20px',
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
       }}>
         {/* ロゴ */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
           onClick={() => setView('home')}
         >
           <SproutLogo />
@@ -66,7 +65,7 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
           </div>
         </div>
 
-        {/* ナビ + ユーザー */}
+        {/* ナビ（中央固定） */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {isLoggedIn && NAV_ITEMS.map(([key, label]) => (
             <button
@@ -89,10 +88,12 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
               {label}
             </button>
           ))}
+        </nav>
 
+        {/* ユーザーバッジ（右寄せ） */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           {isLoggedIn && userName ? (
             <div style={{
-              marginLeft: 8,
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -101,7 +102,6 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
               borderRadius: 999,
               padding: '4px 4px 4px 4px',
             }}>
-              {/* アバター円 */}
               <div style={{
                 width: 28,
                 height: 28,
@@ -117,13 +117,12 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
               }}>
                 {initial}
               </div>
-              {/* ログアウトアイコン */}
               <SignInButton isSignIn={false} compact />
             </div>
           ) : (
             <SignInButton isSignIn={true} />
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );

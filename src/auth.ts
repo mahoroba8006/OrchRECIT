@@ -81,9 +81,9 @@ export const config = {
             return session;
         }
     },
-    useSecureCookies: true,
+    useSecureCookies: isHttps,
     secret: getEnv("NEXTAUTH_SECRET") || "development-secret",
-    debug: true,
+    debug: false,
     session: {
         strategy: "jwt",
     },
@@ -94,7 +94,7 @@ export const config = {
                 httpOnly: true,
                 sameSite: "lax",
                 path: "/",
-                secure: true,
+                secure: isHttps,
             },
         },
     },
