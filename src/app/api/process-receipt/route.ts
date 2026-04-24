@@ -101,18 +101,33 @@ export async function POST(req: Request) {
                 driveLink = await uploadFileToDrive(session.accessToken as string, yearFolderId, newFileName, file.type, buffer);
             }
 
+            // 処理時刻・確認事項を生成
+            const processedAt = new Date().toLocaleString('ja-JP', {
+                timeZone: 'Asia/Tokyo',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit',
+            });
+            const isAsset = !!itemData.is_asset;
+            const apportionmentRequired = !!itemData.apportionment_required;
+            let notes = '';
+            if (isAsset && apportionmentRequired) notes = '固定資産候補/按分確認';
+            else if (isAsset) notes = '固定資産候補';
+            else if (apportionmentRequired) notes = '按分確認';
+
             // スプレッドシートに1行追加
             console.log("Appending row to Google Sheet...");
             await appendRowToSheet(session.accessToken as string, workspace.spreadsheetId, [
-                headerData.date || '',
-                headerData.payee || '',
-                itemData.itemName || '',
-                itemData.amount ? itemData.amount.toString() : '',
-                itemData.category || '',
-                headerData.paymentMethod || '',
-                headerData.businessNumber || '',
-                driveLink || '',
-                itemData.aiComment || '',
+                headerData.date || '',       // A: 購入日
+                headerData.payee || '',      // B: 支払先
+                itemData.itemName || '',     // C: 品目
+                itemData.amount ? itemData.amount.toString() : '', // D: 金額
+                itemData.category || '',     // E: 科目
+                headerData.paymentMethod || '', // F: 支払方法
+                headerData.businessNumber || '', // G: 事業者番号
+                processedAt,                // H: 読み込み処理時刻
+                notes,                      // I: 確認事項
+                driveLink || '',            // J: 原本画像リンク
+                itemData.aiComment || '',   // K: AIコメント
             ]);
 
             console.log("Done!");

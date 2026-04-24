@@ -13,7 +13,10 @@ interface ReceiptRow {
   purchasedItems: string;
   category: string;
   paymentMethod: string;
+  processedAt: string;
+  notes: string;
   driveLink: string;
+  aiComment: string;
 }
 
 /* ── スタイルヘルパー ── */
@@ -23,6 +26,15 @@ const pillStyle = (tone: 'primary' | 'secondary'): React.CSSProperties => ({
   background: tone === 'primary' ? 'var(--primary-soft)' : 'var(--secondary-soft)',
   color: tone === 'primary' ? 'var(--primary)' : 'var(--secondary)',
   border: `1px solid ${tone === 'primary' ? '#72D07C33' : '#1794D733'}`,
+  whiteSpace: 'nowrap' as const,
+});
+
+const noteTagStyle = (type: 'asset' | 'apportionment'): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center',
+  padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600,
+  background: type === 'asset' ? '#FFF3E0' : 'var(--secondary-soft)',
+  color: type === 'asset' ? '#D84315' : 'var(--secondary)',
+  border: `1px solid ${type === 'asset' ? '#FFCC8044' : '#1794D733'}`,
   whiteSpace: 'nowrap' as const,
 });
 
@@ -286,10 +298,10 @@ export default function HistoryViewer() {
         overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 920 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr style={{ background: 'var(--bg-soft)', borderBottom: '1px solid var(--border)' }}>
-                {['購入日', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '操作'].map(h => (
+                {['購入日', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '', '操作'].map(h => (
                   <th key={h} style={{
                     padding: '12px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700,
                     color: 'var(--ink-soft)', letterSpacing: '0.04em', whiteSpace: 'nowrap',
@@ -300,13 +312,13 @@ export default function HistoryViewer() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>
+                  <td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>
                     読み込み中...
                   </td>
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>
+                  <td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>
                     データが見つかりません
                   </td>
                 </tr>
@@ -353,6 +365,17 @@ export default function HistoryViewer() {
                       {isEditing
                         ? <input style={inputStyle} value={editForm.businessNumber || ''} onChange={e => setEditForm({ ...editForm, businessNumber: e.target.value })} />
                         : row.businessNumber}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {!isEditing && row.notes && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {row.notes.split('/').map(tag => (
+                            <span key={tag} style={noteTagStyle(tag.includes('固定資産') ? 'asset' : 'apportionment')}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '14px' }}>
                       <div style={{ display: 'flex', gap: 4 }}>

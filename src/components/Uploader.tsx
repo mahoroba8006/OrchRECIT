@@ -658,7 +658,7 @@ export default function Uploader({ onNavigateHistory }: Props) {
               {(currentItem.is_asset || currentItem.apportionment_required) && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {currentItem.is_asset && <span style={pill('warn')}>⚠ 固定資産候補</span>}
-                  {currentItem.apportionment_required && <span style={pill('warn')}>📊 按分が必要</span>}
+                  {currentItem.apportionment_required && <span style={pill('warn')}>📊 按分確認</span>}
                 </div>
               )}
             </div>

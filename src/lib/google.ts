@@ -101,6 +101,41 @@ export async function deleteFileFromDrive(accessToken: string, fileId: string): 
     }
 }
 
+async function migrateColumnsIfNeeded(accessToken: string, spreadsheetId: string): Promise<void> {
+    const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:K1`;
+    const headerData = await fetchGoogleAPI(headerUrl, accessToken);
+    const headers: string[] = headerData.values?.[0] || [];
+
+    // A1 が空 = 新規シート、H1 が既に新形式 = 移行済み
+    if (!headers[0] || headers[7] === '取込日時') return;
+
+    // 旧形式 (H=原本画像リンク, I=AIコメント) → H列の前に2列挿入してずらす
+    const sheetInfoUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets(properties(sheetId))`;
+    const sheetInfo = await fetchGoogleAPI(sheetInfoUrl, accessToken);
+    const sheetId = sheetInfo.sheets?.[0]?.properties?.sheetId ?? 0;
+
+    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+    await fetchGoogleAPI(batchUrl, accessToken, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            requests: [{
+                insertDimension: {
+                    range: { sheetId, dimension: 'COLUMNS', startIndex: 7, endIndex: 9 },
+                    inheritFromBefore: false
+                }
+            }]
+        })
+    });
+
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/H1:I1?valueInputOption=USER_ENTERED`;
+    await fetchGoogleAPI(updateUrl, accessToken, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [['取込日時', '確認事項']] })
+    });
+}
+
 export interface UserWorkspace {
   rootFolderId: string;
   spreadsheetId: string;
@@ -135,15 +170,17 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     spreadsheetId = createRes.id;
 
     // Set headers
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:I1?valueInputOption=USER_ENTERED`;
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:K1?valueInputOption=USER_ENTERED`;
     await fetchGoogleAPI(updateUrl, accessToken, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            values: [['購入日', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '原本画像リンク', 'AIコメント']]
+            values: [['購入日', '支払先', '品目', '金額', '科目', '支払方法', '事業者番号', '取込日時', '確認事項', '原本画像リンク', 'AIコメント']]
         })
     });
   }
+
+  await migrateColumnsIfNeeded(accessToken, spreadsheetId);
 
   // 3. Receipts folder '領収書'
   let receiptsFolderId = await getFolderIdByName(accessToken, rootFolderId, '領収書');
@@ -246,7 +283,7 @@ export async function updateSettingsInFile(accessToken: string, settingsFolderId
 
 export async function appendRowToSheet(accessToken: string, spreadsheetId: string, values: string[]): Promise<any> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:I:append?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K:append?valueInputOption=USER_ENTERED`;
     return await fetchGoogleAPI(url, accessToken, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -256,7 +293,7 @@ export async function appendRowToSheet(accessToken: string, spreadsheetId: strin
 
 export async function getRowsFromSheet(accessToken: string, spreadsheetId: string): Promise<any[]> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:I`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K`;
     const data = await fetchGoogleAPI(url, accessToken);
     const rows = data.values || [];
     return rows.map((row: any[], index: number) => {
@@ -269,8 +306,10 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
           category: row[4] || '',
           paymentMethod: row[5] || '',
           businessNumber: row[6] || '',
-          driveLink: row[7] || '',
-          aiComment: row[8] || '',
+          processedAt: row[7] || '',
+          notes: row[8] || '',
+          driveLink: row[9] || '',
+          aiComment: row[10] || '',
         };
     }).filter((row: any, index: number) => {
         if (index === 0) return false;
@@ -280,7 +319,7 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
 
 export async function updateRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number, values: string[]): Promise<any> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:I${rowIndex}?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:K${rowIndex}?valueInputOption=USER_ENTERED`;
     return await fetchGoogleAPI(url, accessToken, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -88,7 +88,7 @@ ${customSection}
 # Logic & Constraints
 - 農業経費前提: 読み込んだレシートはすべて農業経費として扱い、必ず農業科目に分類する。
 - 10万円ルール: 単一で10万円以上の項目は is_asset: true とし、「固定資産」候補としてフラグを立てる。
-- 按分推論: ガソリン、電気、通信費、車両関連は apportionment_required: true とする。
+- 按分推論: ガソリン、電気、通信費、車両など私用との按分が必要と判断される場合は apportionment_required: true とする。
 - 店舗特性: 「綿半」「カインズ」「コメリ」「JA資材センター」等の店舗は農業関連の確率が高いと判断する。
 
 # Output Rules

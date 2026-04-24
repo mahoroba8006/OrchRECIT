@@ -28,7 +28,7 @@ export async function PUT(req: Request) {
         }
 
         const body = await req.json();
-        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink, oldDate, aiComment } = body;
+        const { rowIndex, date, payee, amount, businessNumber, purchasedItems, category, paymentMethod, driveLink, oldDate, aiComment, processedAt, notes } = body;
 
         if (!rowIndex) {
             return NextResponse.json({ error: 'rowIndex is required' }, { status: 400 });
@@ -36,7 +36,7 @@ export async function PUT(req: Request) {
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
 
-        // スプレッドシートの行を更新 (新しい列の順番: 日付,支払先,品目,金額,科目,支払方法,事業者番号,リンク,AIコメント)
+        // 列順: 購入日,支払先,品目,金額,科目,支払方法,事業者番号,読み込み処理時刻,確認事項,原本画像リンク,AIコメント
         const values = [
             date,
             payee,
@@ -45,6 +45,8 @@ export async function PUT(req: Request) {
             category,
             paymentMethod,
             businessNumber,
+            processedAt || '',
+            notes || '',
             driveLink,
             aiComment || ''
         ];
@@ -62,13 +64,15 @@ export async function PUT(req: Request) {
                 // 抽出された他の行も新しい日付に更新
                 for (const sharedRow of sharedRows) {
                     const sharedValues = [
-                        date, // 新しい日付に変更
+                        date,
                         sharedRow.payee,
                         sharedRow.purchasedItems,
                         sharedRow.amount,
                         sharedRow.category,
                         sharedRow.paymentMethod,
                         sharedRow.businessNumber,
+                        sharedRow.processedAt || '',
+                        sharedRow.notes || '',
                         sharedRow.driveLink,
                         sharedRow.aiComment || ''
                     ];
