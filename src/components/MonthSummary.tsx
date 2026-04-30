@@ -66,12 +66,12 @@ function niceMax(value: number): number {
 
 // ─── 月別棒グラフ ────────────────────────────────────────────────────────────
 function MonthlyBarChart({ monthlyData, stats }: { monthlyData: MonthlyData; stats: CatStat[] }) {
-  const SVG_W = 560, SVG_H = 200;
+  const SVG_W = 560, SVG_H = 300;
   const PAD = { left: 50, right: 16, top: 16, bottom: 32 };
   const chartW = SVG_W - PAD.left - PAD.right;
   const chartH = SVG_H - PAD.top - PAD.bottom;
   const slotW = chartW / 12;
-  const barW = Math.min(slotW * 0.58, 26);
+  const barW = Math.min(slotW * 0.76, 36);
 
   const colorMap: Record<string, string> = {};
   for (const s of stats) colorMap[s.name] = s.color;
@@ -113,7 +113,7 @@ function MonthlyBarChart({ monthlyData, stats }: { monthlyData: MonthlyData; sta
         return (
           <g key={`g${i}`}>
             <line x1={PAD.left} y1={y} x2={SVG_W - PAD.right} y2={y} stroke="#ebebeb" strokeWidth={0.8} />
-            <text x={PAD.left - 5} y={y + 4} textAnchor="end" fontSize="9.5" fill="#aaa">
+            <text x={PAD.left - 5} y={y + 4} textAnchor="end" fontSize="11" fill="#aaa">
               {formatYLabel(maxVal * pct)}
             </text>
           </g>
@@ -124,7 +124,7 @@ function MonthlyBarChart({ monthlyData, stats }: { monthlyData: MonthlyData; sta
         <text key={`x${i}`}
           x={PAD.left + i * slotW + slotW / 2}
           y={SVG_H - 8}
-          textAnchor="middle" fontSize="9.5" fill="#aaa">
+          textAnchor="middle" fontSize="11" fill="#aaa">
           {i + 1}月
         </text>
       ))}
@@ -253,9 +253,9 @@ export default function MonthSummary() {
   return (
     <div style={{ marginTop: 28 }}>
       {/* ヘッダ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        {/* 左: タイトル + 年選択 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="digest-header">
+        {/* PC左 / モバイル1段目: タイトル + 年選択 */}
+        <div className="digest-header-left">
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
             経費ダイジェスト
           </h3>
@@ -272,11 +272,12 @@ export default function MonthSummary() {
           )}
         </div>
 
-        {/* 右: 除外設定 + 最新に更新ボタン */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* PC右 / モバイル2段目: 閾値フィルター + 最新に更新ボタン */}
+        <div className="digest-header-right">
           <select
             value={outlierThreshold ?? ''}
             onChange={e => handleThresholdChange(e.target.value === '' ? null : Number(e.target.value))}
+            className="digest-threshold"
             style={selectStyle}
           >
             {THRESHOLD_OPTIONS.map(opt => (
@@ -293,7 +294,7 @@ export default function MonthSummary() {
               border: '1px solid var(--border)', background: '#fff',
               color: 'var(--ink-soft)', fontSize: 12, fontWeight: 600,
               cursor: isLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-              opacity: isLoading ? 0.6 : 1,
+              opacity: isLoading ? 0.6 : 1, whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -396,6 +397,31 @@ export default function MonthSummary() {
 
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .digest-header {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .digest-header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .digest-header-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .digest-threshold { flex: 1; }
+        @media (min-width: 540px) {
+          .digest-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .digest-threshold { flex: none; }
+        }
         .digest-layout {
           display: flex;
           flex-direction: column;

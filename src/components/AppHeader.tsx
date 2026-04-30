@@ -54,7 +54,7 @@ export default function AppHeader({ view, setView, userName, isLoggedIn }: Props
           onClick={() => setView('home')}
         >
           <SproutLogo />
-          <div style={{
+          <div className="header-logo-text" style={{
             fontSize: 18,
             fontWeight: 700,
             color: 'var(--ink)',
