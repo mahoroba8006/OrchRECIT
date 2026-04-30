@@ -125,29 +125,32 @@ export async function DELETE(req: Request) {
 
         const workspace = await setupUserWorkspace(session.accessToken as string);
 
-        // Google Drive から画像ファイルを削除する前に、他に同じリンクが存在しないかチェックする
-        if (driveLink) {
-            try {
-                // スプレッドシートの全データを取得してチェック
-                const allRows = await getRowsFromSheet(session.accessToken as string, workspace.spreadsheetId);
+        // スプレッドシートから全データを取得し、対象行の driveLink をサーバー側で確定する
+        // クライアント供給の driveLink は検証用にのみ使用し、Drive 操作には使わない
+        try {
+            const allRows = await getRowsFromSheet(session.accessToken as string, workspace.spreadsheetId);
+            const targetRow = allRows.find(row => row.rowIndex === rowIndex);
 
-                // 削除対象の行「以外」で、同じ driveLink を持つ行が存在するか確認
-                const isSharedLink = allRows.some(row => row.rowIndex !== rowIndex && row.driveLink === driveLink);
+            // サーバー側で確認した driveLink を使用（クライアント値と不一致なら Drive 操作をスキップ）
+            const serverDriveLink = targetRow?.driveLink || '';
+
+            if (serverDriveLink && (!driveLink || serverDriveLink === driveLink)) {
+                // 他の行と同じリンクを共有していないか確認
+                const isSharedLink = allRows.some(row => row.rowIndex !== rowIndex && row.driveLink === serverDriveLink);
 
                 if (isSharedLink) {
                     console.log(`Drive file deletion skipped: The file is still referenced by other rows in the spreadsheet.`);
                 } else {
-                    // driveLink の形式 (例: https://drive.google.com/file/d/1ABCDEFG/view) からIDを抽出
-                    const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+                    const match = serverDriveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
                     if (match && match[1]) {
-                        const fileId = match[1];
-                        console.log(`Deleting Drive file with ID: ${fileId} as it has no other references.`);
-                        await deleteFileFromDrive(session.accessToken as string, fileId);
+                        await deleteFileFromDrive(session.accessToken as string, match[1]);
                     }
                 }
-            } catch (err) {
-                console.error("Failed to check or delete from Drive, but proceeding with Sheet deletion:", err);
+            } else if (driveLink && serverDriveLink !== driveLink) {
+                console.warn(`Drive deletion skipped: client driveLink does not match server record for rowIndex=${rowIndex}`);
             }
+        } catch (err) {
+            console.error("Failed to check or delete from Drive, but proceeding with Sheet deletion:", err);
         }
 
         // スプレッドシートの行をクリアする

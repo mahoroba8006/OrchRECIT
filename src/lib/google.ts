@@ -128,7 +128,7 @@ async function migrateColumnsIfNeeded(accessToken: string, spreadsheetId: string
         })
     });
 
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/H1:I1?valueInputOption=USER_ENTERED`;
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/H1:I1?valueInputOption=RAW`;
     await fetchGoogleAPI(updateUrl, accessToken, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -170,7 +170,7 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     spreadsheetId = createRes.id;
 
     // Set headers
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:K1?valueInputOption=USER_ENTERED`;
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:K1?valueInputOption=RAW`;
     await fetchGoogleAPI(updateUrl, accessToken, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -219,7 +219,7 @@ async function ensureSettingsSheet(accessToken: string, spreadsheetId: string): 
         });
 
         // Initialize headers
-        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A1:B1?valueInputOption=USER_ENTERED`;
+        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'設定'!A1:B1?valueInputOption=RAW`;
         await fetchGoogleAPI(updateUrl, accessToken, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -283,7 +283,7 @@ export async function updateSettingsInFile(accessToken: string, settingsFolderId
 
 export async function appendRowToSheet(accessToken: string, spreadsheetId: string, values: string[]): Promise<any> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K:append?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K:append?valueInputOption=RAW`;
     return await fetchGoogleAPI(url, accessToken, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,7 +319,7 @@ export async function getRowsFromSheet(accessToken: string, spreadsheetId: strin
 
 export async function updateRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number, values: string[]): Promise<any> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:K${rowIndex}?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:K${rowIndex}?valueInputOption=RAW`;
     return await fetchGoogleAPI(url, accessToken, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
