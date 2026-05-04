@@ -170,7 +170,6 @@ export default function HistoryViewer() {
   const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
   const pagedData = filteredData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const isFertilizer = (cat: string) => cat.includes('肥料') || cat.includes('農薬');
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 20px 80px' }}>
@@ -189,7 +188,7 @@ export default function HistoryViewer() {
       <form onSubmit={handleSearch} style={{ position: 'relative', flex: 1 }}>
         <input
           type="text"
-          placeholder='AIに聞く　例：「先月の肥料費」「トマト関連の支出」'
+          placeholder='AIに聞く　例：「先月の肥料費」「車関連の支出」'
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={{
@@ -354,7 +353,7 @@ export default function HistoryViewer() {
                     <td style={{ padding: '14px' }}>
                       {isEditing
                         ? <input style={inputStyle} value={editForm.category || ''} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
-                        : <span style={pillStyle(isFertilizer(row.category) ? 'secondary' : 'primary')}>{row.category}</span>}
+                        : <span style={pillStyle('primary')}>{row.category}</span>}
                     </td>
                     <td style={{ padding: '14px', fontSize: 12, color: 'var(--ink-soft)' }}>
                       {isEditing
