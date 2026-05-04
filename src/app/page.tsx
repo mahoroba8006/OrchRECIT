@@ -1,7 +1,5 @@
-import { auth } from "@/auth";
-import AppShell from '@/components/AppShell';
+import LandingPage from '@/components/LandingPage';
 
-export default async function Home() {
-  const session = await auth();
-  return <AppShell session={session} />;
+export default function Home() {
+  return <LandingPage />;
 }

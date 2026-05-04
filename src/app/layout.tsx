@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
@@ -6,7 +6,7 @@ import AuthProvider from '@/components/AuthProvider';
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800', '900'],
   display: 'swap',
 });
 
@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Orch.RECIT',
-  description: 'AI-powered receipt tracking with Gemini and Google Drive',
+  title: 'Orch.RECIT — 農業経費を、撮って終わり。',
+  description: 'AI がレシートを読んで農業専用の勘定科目まで判定。データはすべてあなたの Google Drive に保存されます。青色申告対応の農業経費 AI 領収書アプリ。',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/icon.png',
@@ -30,15 +30,16 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     capable: true,
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   other: {
     'apple-touch-icon': '/icon.png',
   }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
