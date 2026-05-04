@@ -13,12 +13,8 @@ interface Props {
 
 function SproutLogo() {
   return (
-    <svg width="34" height="34" viewBox="0 0 40 40">
-      <circle cx="20" cy="20" r="18" fill="var(--primary-soft)" />
-      <path d="M28 10c-8 0-14 5-14 12 0 3 2 5 5 5 7 0 10-8 9-17z" fill="var(--primary)" />
-      <circle cx="14" cy="26" r="4" fill="var(--secondary)" />
-      <path d="M13 25a1.5 1.5 0 0 0 1.5 1.5" stroke="#fff" strokeWidth="1" fill="none" opacity="0.7" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/icon.png" width={34} height={34} alt="Orch.RECIT" style={{ display: 'block', borderRadius: 8 }} />
   );
 }
 
