@@ -254,7 +254,7 @@ export default function MonthSummary() {
     <div style={{ marginTop: 28 }}>
       {/* ヘッダ */}
       <div className="digest-header">
-        {/* PC左 / モバイル1段目: タイトル + 年選択 */}
+        {/* PC左 / モバイル1段目: タイトル + 年選択 + 最新に更新ボタン */}
         <div className="digest-header-left">
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
             経費ダイジェスト
@@ -270,24 +270,10 @@ export default function MonthSummary() {
               ))}
             </select>
           )}
-        </div>
-
-        {/* PC右 / モバイル2段目: 閾値フィルター + 最新に更新ボタン */}
-        <div className="digest-header-right">
-          <select
-            value={outlierThreshold ?? ''}
-            onChange={e => handleThresholdChange(e.target.value === '' ? null : Number(e.target.value))}
-            className="digest-threshold"
-            style={selectStyle}
-          >
-            {THRESHOLD_OPTIONS.map(opt => (
-              <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
-            ))}
-          </select>
-
           <button
             onClick={fetchAndAggregate}
             disabled={isLoading}
+            className="digest-refresh"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '6px 12px', borderRadius: 'var(--radius-sm)',
@@ -303,6 +289,20 @@ export default function MonthSummary() {
             </svg>
             最新に更新
           </button>
+        </div>
+
+        {/* PC右 / モバイル2段目: 閾値フィルター */}
+        <div className="digest-header-right">
+          <select
+            value={outlierThreshold ?? ''}
+            onChange={e => handleThresholdChange(e.target.value === '' ? null : Number(e.target.value))}
+            className="digest-threshold"
+            style={selectStyle}
+          >
+            {THRESHOLD_OPTIONS.map(opt => (
+              <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -408,10 +408,10 @@ export default function MonthSummary() {
           align-items: center;
           gap: 10px;
         }
+        .digest-refresh { margin-left: auto; }
         .digest-header-right {
           display: flex;
           align-items: center;
-          gap: 8px;
         }
         .digest-threshold { flex: 1; }
         @media (min-width: 540px) {
@@ -420,6 +420,7 @@ export default function MonthSummary() {
             justify-content: space-between;
             align-items: center;
           }
+          .digest-refresh { margin-left: 0; }
           .digest-threshold { flex: none; }
         }
         .digest-layout {
