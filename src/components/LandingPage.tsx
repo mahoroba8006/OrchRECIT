@@ -337,39 +337,40 @@ export default function LandingPage() {
           KNOWLEDGE SPOTLIGHT
       ══════════════════════════════════════════ */}
       <section style={{
-        background: 'var(--primary-fg)',
+        background: 'linear-gradient(135deg, var(--primary-soft) 0%, var(--secondary-soft) 100%)',
         padding: '88px 24px',
         position: 'relative',
         overflow: 'hidden',
       }}>
         <div aria-hidden style={{
-          position: 'absolute', top: '-20%', right: '-8%',
-          width: 480, height: 480,
-          background: 'radial-gradient(circle, #72D07C22 0%, transparent 65%)',
-          filter: 'blur(60px)',
+          position: 'absolute', top: '-10%', right: '-6%',
+          width: 400, height: 400,
+          background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)',
+          filter: 'blur(80px)', opacity: 0.18,
         }} />
         <div aria-hidden style={{
-          position: 'absolute', bottom: '-15%', left: '-6%',
-          width: 380, height: 380,
-          background: 'radial-gradient(circle, #1794D722 0%, transparent 65%)',
-          filter: 'blur(50px)',
+          position: 'absolute', bottom: '-10%', left: '-4%',
+          width: 320, height: 320,
+          background: 'radial-gradient(circle, var(--secondary) 0%, transparent 70%)',
+          filter: 'blur(70px)', opacity: 0.14,
         }} />
 
         <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center', position: 'relative' }}>
           <FadeIn>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'rgba(114,208,124,.12)', border: '1px solid rgba(114,208,124,.22)',
+              background: 'var(--surface)', border: '1px solid var(--border)',
               borderRadius: 100, padding: '6px 18px', marginBottom: 28,
+              boxShadow: 'var(--shadow-card)',
             }}>
-              <BookOpen size={13} color="#72D07C" />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#72D07C', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Knowledge</span>
+              <BookOpen size={13} color="var(--primary)" />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Knowledge</span>
             </div>
 
             <h2 style={{
               fontSize: 'clamp(26px, 4.5vw, 46px)',
               fontWeight: 900,
-              color: '#ffffff',
+              color: 'var(--ink)',
               lineHeight: 1.2,
               marginBottom: 24,
               letterSpacing: '-0.02em',
@@ -377,7 +378,7 @@ export default function LandingPage() {
               使うほど、<br />農業会計の知識が身につく
             </h2>
 
-            <p style={{ fontSize: 15.5, color: 'rgba(255,255,255,.65)', lineHeight: 1.85, marginBottom: 44 }}>
+            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', lineHeight: 1.85, marginBottom: 44 }}>
               「なぜ種苗費なのか」「按分が必要な理由」——AI は判定結果だけでなく、<br />
               毎回ワンポイントアドバイスを添えます。確定申告の不安が、少しずつ減ります。
             </p>
@@ -390,9 +391,10 @@ export default function LandingPage() {
               ].map((t, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.13)',
+                  background: 'var(--surface)', border: '1px solid var(--border)',
                   borderRadius: 100, padding: '8px 20px',
-                  fontSize: 13, color: 'rgba(255,255,255,.8)', fontWeight: 500,
+                  fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500,
+                  boxShadow: 'var(--shadow-card)',
                 }}>
                   <span style={{ color: 'var(--primary)', fontSize: 14 }}>✦</span>
                   {t}
@@ -580,32 +582,44 @@ export default function LandingPage() {
           FINAL CTA
       ══════════════════════════════════════════ */}
       <section style={{
-        background: 'linear-gradient(145deg, var(--primary-fg) 0%, #1a3d22 100%)',
+        background: 'var(--primary)',
         padding: '88px 24px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
       }}>
         <div aria-hidden style={{
-          position: 'absolute', top: '-20%', left: '50%',
+          position: 'absolute', top: '-30%', left: '50%',
           transform: 'translateX(-50%)',
-          width: 600, height: 400,
-          background: 'radial-gradient(circle, #72D07C18 0%, transparent 70%)',
+          width: 700, height: 500,
+          background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 65%)',
           filter: 'blur(40px)',
+        }} />
+        <div aria-hidden style={{
+          position: 'absolute', bottom: '-20%', right: '-8%',
+          width: 360, height: 360,
+          background: 'radial-gradient(circle, var(--secondary-soft) 0%, transparent 70%)',
+          filter: 'blur(60px)', opacity: 0.5,
         }} />
         <FadeIn style={{ position: 'relative' }}>
           <h2 style={{
             fontSize: 'clamp(24px, 4.5vw, 44px)',
-            fontWeight: 900, color: '#fff',
+            fontWeight: 900, color: 'var(--primary-fg)',
             marginBottom: 18, letterSpacing: '-0.02em',
             lineHeight: 1.2,
           }}>
             農業経費の記録を、<br />今日から変えよう
           </h2>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,.6)', marginBottom: 44, lineHeight: 1.75 }}>
+          <p style={{ fontSize: 16, color: 'var(--ink)', opacity: 0.72, marginBottom: 44, lineHeight: 1.75 }}>
             Google アカウントでログインするだけ。設定不要、すぐに使えます。
           </p>
-          <Link href="/app" style={{ ...ctaStyle, padding: '17px 44px', fontSize: 16 }}>
+          <Link href="/app" style={{
+            ...ctaStyle,
+            padding: '17px 44px', fontSize: 16,
+            background: 'var(--surface)',
+            color: 'var(--ink)',
+            boxShadow: '0 2px 0 rgba(0,0,0,.06), 0 12px 28px -8px rgba(0,0,0,.15)',
+          }}>
             Google アカウントで無料で始める <ArrowRight size={18} />
           </Link>
         </FadeIn>
