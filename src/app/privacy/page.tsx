@@ -8,11 +8,8 @@ export const metadata: Metadata = {
 
 function SproutLogo({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40">
-      <circle cx="20" cy="20" r="18" fill="var(--primary-soft)" />
-      <path d="M28 10c-8 0-14 5-14 12 0 3 2 5 5 5 7 0 10-8 9-17z" fill="var(--primary)" />
-      <circle cx="14" cy="26" r="4" fill="var(--secondary)" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/icon.png" width={size} height={size} alt="Orch.RECIT" style={{ display: 'block', borderRadius: Math.round(size * 0.22) }} />
   );
 }
 
