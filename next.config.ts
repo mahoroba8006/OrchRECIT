@@ -6,6 +6,8 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   workboxOptions: {
+    // ナビゲーションフォールバックを無効化 — LP の HTML を /app に返さないため
+    navigateFallback: null,
     exclude: [
       /\.map$/,
       /^manifest.*\.webmanifest$/,
