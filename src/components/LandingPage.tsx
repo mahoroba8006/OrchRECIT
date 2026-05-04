@@ -476,7 +476,6 @@ export default function LandingPage() {
               {[
                 { emoji: '🏛', title: '税務署管内ルール', desc: '地域特有の科目処理を AI に設定' },
                 { emoji: '✏️', title: 'ユーザー独自条件', desc: 'あなた専用の仕訳ルールを登録' },
-                { emoji: '🔄', title: '継続的に精度向上', desc: '指示を重ねるほど判定が自分仕様に' },
               ].map((c, i) => (
                 <div key={i} style={{
                   background: 'var(--surface)',
