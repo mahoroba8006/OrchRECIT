@@ -6,14 +6,20 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   workboxOptions: {
-    // ナビゲーションフォールバックを無効化 — LP の HTML を /app に返さないため
     navigateFallback: null,
+    // Cloudflare 特殊ファイルを precache から除外 (manifestTransforms で確実に除去)
+    manifestTransforms: [
+      (entries: any[]) => ({
+        manifest: entries.filter((e: any) => !['/_headers', '/_routes.json'].some(p => e.url === p || e.url.endsWith(p))),
+        warnings: [],
+      }),
+    ],
     exclude: [
       /\.map$/,
       /^manifest.*\.webmanifest$/,
       /middleware-manifest\.json$/,
-      /_headers$/,
-      /_routes\.json$/,
+      /_headers/,
+      /_routes\.json/,
     ],
   },
 });
