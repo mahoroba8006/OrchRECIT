@@ -170,7 +170,7 @@ export default function PrivacyPage() {
           <SproutLogo size={24} />
           <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Orch.RECIT</span>
         </Link>
-        <Link href="/app" style={{
+        <Link href="/dashboard" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '7px 18px',
           background: 'var(--primary)',
@@ -267,7 +267,7 @@ export default function PrivacyPage() {
           <Link href="/" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             トップページ
           </Link>
-          <Link href="/app" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
+          <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             アプリを開く
           </Link>
         </div>

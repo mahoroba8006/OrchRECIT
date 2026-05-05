@@ -150,7 +150,7 @@ export default function LandingPage() {
           <SproutLogo size={24} />
           <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Orch.RECIT</span>
         </div>
-        <Link href="/app" style={{
+        <Link href="/dashboard" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '7px 18px',
           background: 'var(--primary)',
@@ -245,7 +245,7 @@ export default function LandingPage() {
 
           {/* CTA */}
           <div style={{ animation: 'slideUp .6s .3s ease both', display: 'inline-block' }}>
-            <Link href="/app" style={ctaStyle}>
+            <Link href="/dashboard" style={ctaStyle}>
               Google アカウントで無料で始める
               <ArrowRight size={17} />
             </Link>
@@ -562,7 +562,7 @@ export default function LandingPage() {
               <p style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.75, marginBottom: 36 }}>
                 Google アカウントがあれば、追加の登録・料金は一切不要です。すべての機能を無料でご利用いただけます。
               </p>
-              <Link href="/app" style={ctaStyle}>
+              <Link href="/dashboard" style={ctaStyle}>
                 無料で始める <ArrowRight size={16} />
               </Link>
               <p style={{ marginTop: 22, fontSize: 12, color: 'var(--ink-mute)' }}>
@@ -608,7 +608,7 @@ export default function LandingPage() {
           <p style={{ fontSize: 16, color: 'var(--ink)', opacity: 0.72, marginBottom: 44, lineHeight: 1.75 }}>
             Google アカウントでログインするだけ。設定不要、すぐに使えます。
           </p>
-          <Link href="/app" style={{
+          <Link href="/dashboard" style={{
             ...ctaStyle,
             padding: '17px 44px', fontSize: 16,
             background: 'var(--surface)',
@@ -637,7 +637,7 @@ export default function LandingPage() {
           農業経費 AI 領収書アプリ
         </p>
         <div style={{ display: 'flex', gap: 24, justifyContent: 'center', alignItems: 'center' }}>
-          <Link href="/app" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
+          <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             アプリを開く →
           </Link>
           <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
