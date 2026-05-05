@@ -7,7 +7,8 @@ const withPWA = withPWAInit({
   register: true,
   workboxOptions: {
     navigateFallback: null,
-    // Cloudflare 特殊ファイルを precache から除外 (manifestTransforms で確実に除去)
+    // Cloudflare の特殊設定ファイル (_headers, _routes.json) は HTTP リソースとして 404 を返すため
+    // SW の precache から除外する。public/ 配下のファイルは workboxOptions.exclude では除去できないので manifestTransforms を使用する。
     manifestTransforms: [
       (entries: any[]) => ({
         manifest: entries.filter((e: any) => !['/_headers', '/_routes.json'].some(p => e.url === p || e.url.endsWith(p))),
@@ -18,8 +19,6 @@ const withPWA = withPWAInit({
       /\.map$/,
       /^manifest.*\.webmanifest$/,
       /middleware-manifest\.json$/,
-      /_headers/,
-      /_routes\.json/,
     ],
   },
 });
