@@ -259,3 +259,84 @@
 - Google OAuth アプリ審査申請（プライバシーポリシー URL: https://orchrecit.pages.dev/privacy）
 - ブラウザ実機確認（LP 全セクション・モバイル375px）
 - カスタムドメイン取得後 Cloudflare Pages に設定
+
+---
+
+## 2026-05-05 セッション
+
+### 作業内容
+
+#### 1. UI 微修正
+- `HistoryViewer.tsx`: 科目チップの色を全て緑（primary）に統一（旧: 肥料・農薬は青の振り分け）
+- `HistoryViewer.tsx`: AI検索プレースホルダー「トマト関連の支出」→「車関連の支出」
+- `MonthSummary.tsx`: モバイル時に「最新に更新」ボタンを年セレクタの右に配置（`.digest-refresh` クラス + `margin-left:auto` で右寄せ）
+
+#### 2. ロゴ画像の差し替え
+- `AppHeader.tsx` / `LandingPage.tsx` / `app/privacy/page.tsx` の SVG 葉ロゴ（`SproutLogo`）を `<img src="/icon.png">` に置換
+
+#### 3. 【最大の障害】`/app` でLPが表示される問題の解決
+**症状**: 本番（Cloudflare Pages）の `orchrecit.pages.dev/app` に AppShell ではなく LP が表示される。シークレットウィンドウでも再現。ローカル `npm run dev` では正常。
+
+**原因究明の経緯**:
+1. SW の `bad-precaching-response: /_headers` エラー → `manifestTransforms` で除外（解決したが本件とは別問題）
+2. `force-dynamic` 追加 → 効果なし
+3. 環境変数 `NEXTAUTH_URL` ローテート → 効果なし
+4. `revalidate=0` + `fetchCache='force-no-store'` 追加 → 効果なし
+5. `headers()` 動的呼び出し追加 → **依然 `x-nextjs-prerender: 1` が消えず**
+6. **`src/app/app/` → `src/app/dashboard/` にリネーム** → 解決 ✅
+
+**真因**: App Router の特殊ディレクトリ `app` の直下にもう一度 `app` セグメントを作ると、opennextjs-cloudflare がルートを誤って静的プリレンダリングし、そのHTMLとして別ルート（LP）の内容が混入する。dynamic 指示は全て無視される。
+
+**変更**:
+- `src/app/app/` → `src/app/dashboard/` にディレクトリ rename
+- `LandingPage.tsx` の `href="/app"` 5箇所 → `/dashboard`
+- `app/privacy/page.tsx` の `href="/app"` 2箇所 → `/dashboard`
+- 関数名 `Home` → `Dashboard`
+
+#### 4. 試行錯誤の名残コード整理
+- `dashboard/page.tsx`: `revalidate=0` / `fetchCache='force-no-store'` / `headers()` 呼び出しを削除（リネームで解決済みのデッドコード）
+- `next.config.ts`: `workboxOptions.exclude` から `_headers` / `_routes\.json` を削除（`exclude` は public/配下のファイルに効かないと判明、真の解決策は `manifestTransforms`）
+
+#### 5. 教訓記録
+- `tasks/lessons.md` セクション6に「App Router で `/app` ルートを使うと opennextjs-cloudflare が誤動作する」を追記
+- 効かなかった対策・診断シグナル（`x-nextjs-prerender: 1` + `s-maxage=31536000`）・対策（ルート名に `app` を使わない）を記録
+
+### 決定事項
+- アプリ本体のルートは `/dashboard` に確定（旧 `/app` は完全廃止）
+- Cloudflare Pages では `force-dynamic` 等の dynamic 指示が効かないケースがあり、ルート名・ディレクトリ構造レベルで回避が必要
+- `public/_headers` 等の Cloudflare 特殊ファイルの SW precache 除外は `manifestTransforms` 一択（`exclude` は効かない）
+- `force-dynamic` は明示的な意図表現として `dashboard/page.tsx` に残す
+
+### 未完了タスク
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: https://orchrecit.pages.dev/privacy）
+- ブラウザ実機確認（LP 全セクション・モバイル375px・`/dashboard` のログインフロー）
+- カスタムドメイン取得後 Cloudflare Pages に設定
+
+---
+
+## 2026-05-06 セッション
+
+### 議論内容
+- LP にアプリの実画像を取り込む方針を提案・合意（実装は未着手）
+
+### 決定方針（実装待ち）
+- **配置**: Hero 右側1枚 + Features 3枚 = 計4枚構成
+  1. Hero: Uploader review 画面（OCR結果カード）
+  2. Features「経費ダイジェスト」: MonthSummary 円グラフ + 棒グラフ
+  3. Features「明細・AI検索」: HistoryViewer 検索結果画面
+  4. Features「自動カテゴリ分類」: ReviewCard 科目バッジ + AIコメント
+- **撮影**: ローカル `npm run dev` の `/dashboard` でダミーデータ投入後スクショ。Retina 相当（横1600px〜）
+- **マスキング**: メール・支払先名は `■■■` 置換（既存「JA ながの」記号置換ロジック流用可）
+- **格納**: `public/lp/` 配下に配置
+- **実装**: `next/image` の `<Image>` 使用（LCP最適化 + webp 自動変換）
+- **額装**: ブラウザフレーム風モック + `box-shadow: 0 30px 60px -20px rgba(28,80,50,.25)` + `border-radius: 14px`、Hero のみ `rotate(-2deg)`（モバイルでは解除）
+- **却下案**: 動画埋め込み（CSP問題）/ Figma モック（不誠実）/ How it works への画像追加（冗長）
+
+### 次のアクション
+- ユーザーがスクショ4枚を撮影 → `public/lp/` 配置 → `LandingPage.tsx` 改修 + 額装CSS → 実機確認
+
+### 未完了タスク
+- LP 実画像実装（スクショ撮影〜配置〜LP改修〜実機確認）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: https://orchrecit.pages.dev/privacy）
+- ブラウザ実機確認（LP 全セクション・モバイル375px・`/dashboard` のログインフロー）
+- カスタムドメイン取得後 Cloudflare Pages に設定

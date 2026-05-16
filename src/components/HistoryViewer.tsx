@@ -161,7 +161,7 @@ export default function HistoryViewer() {
     } catch (err: any) { toast.error(err.message || '更新に失敗しました', { id: t }); }
   };
 
-  const categoryChips = Array.from(new Set(data.map(r => r.category).filter(Boolean))).sort();
+  const categoryChips = Array.from(new Set(data.map(r => r.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ja'));
   const filterChips = ['すべて', ...categoryChips];
   const yearMonths = Array.from(new Set(
     data.map(r => r.date?.slice(0, 7)).filter(Boolean)

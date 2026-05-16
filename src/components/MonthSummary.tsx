@@ -21,6 +21,12 @@ const RANK_COLORS = [
   '#2ABFAB', '#C9B820', '#D4608A', '#4A6FD4', '#7B9E3E',
 ];
 
+const MONTH_COLORS = [
+  '#72D07C', '#5BC8D0', '#1794D7', '#6B7FD7',
+  '#9b72d0', '#D4608A', '#E05252', '#E8933A',
+  '#C9B820', '#7B9E3E', '#2ABFAB', '#4A6FD4',
+];
+
 const THRESHOLD_OPTIONS: { label: string; value: number | null }[] = [
   { label: 'すべての支出を表示', value: null },
   { label: '100万円超を除外（大規模な設備投資を除く）', value: 1000000 },
@@ -62,6 +68,34 @@ function niceMax(value: number): number {
   if (norm <= 2) return 2 * mag;
   if (norm <= 5) return 5 * mag;
   return 10 * mag;
+}
+
+// ─── ドーナツ円グラフ ─────────────────────────────────────────────────────────
+interface DonutSegment { color: string; amount: number; }
+
+function DonutChart({ segments, total }: { segments: DonutSegment[]; total: number }) {
+  const cx = 100, cy = 100, r = 70, strokeW = 24;
+  const circ = 2 * Math.PI * r;
+  let cumAngle = 0;
+  return (
+    <svg width="100%" viewBox="0 0 200 200">
+      {segments.map((seg, i) => {
+        const pct = seg.amount / total;
+        const dash = pct * circ;
+        const gap = circ - dash;
+        const dashOffset = -(cumAngle / (2 * Math.PI)) * circ + circ * 0.25;
+        cumAngle += pct * 2 * Math.PI;
+        return (
+          <circle key={i} cx={cx} cy={cy} r={r}
+            fill="none" stroke={seg.color} strokeWidth={strokeW}
+            strokeDasharray={`${dash} ${gap}`}
+            strokeDashoffset={dashOffset}
+            style={{ transition: 'stroke-dasharray .4s ease' }}
+          />
+        );
+      })}
+    </svg>
+  );
 }
 
 // ─── 月別棒グラフ ────────────────────────────────────────────────────────────
@@ -149,6 +183,7 @@ export default function MonthSummary() {
   const [monthlyData, setMonthlyData] = useState<MonthlyData>({});
   const [total, setTotal] = useState(0);
   const [count, setCount] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const aggregate = useCallback((year: number, rows: Row[], threshold: number | null) => {
@@ -216,6 +251,7 @@ export default function MonthSummary() {
       outlierThresholdRef.current = null;
       setSelectedYear(target);
       setOutlierThreshold(null);
+      setSelectedCategory(null);
       aggregate(target, rows, null);
     } catch { /* silent */ }
     finally { setIsLoading(false); }
@@ -242,6 +278,28 @@ export default function MonthSummary() {
 
   const isEmpty = stats.length === 0;
   const emptyMsg = isLoading ? '集計中...' : `${selectedYear}年のデータがありません`;
+
+  // 科目選択時: 棒グラフ用データを単一科目に絞る
+  const filteredMonthlyData: MonthlyData = selectedCategory === null
+    ? monthlyData
+    : Object.fromEntries(
+        Object.entries(monthlyData).map(([m, cats]) => [
+          m, { [selectedCategory]: cats[selectedCategory] ?? 0 }
+        ])
+      );
+  const filteredStats: CatStat[] = selectedCategory === null
+    ? stats
+    : stats.filter(s => s.name === selectedCategory);
+
+  // 科目選択時: 月別ドーナツ用データ（0円の月は除外）
+  const monthStats = selectedCategory === null ? [] :
+    Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      label: `${i + 1}月`,
+      amount: monthlyData[i + 1]?.[selectedCategory] ?? 0,
+      color: MONTH_COLORS[i],
+    })).filter(m => m.amount > 0);
+  const monthTotal = monthStats.reduce((s, m) => s + m.amount, 0);
 
   const selectStyle: React.CSSProperties = {
     padding: '6px 8px', borderRadius: 'var(--radius-sm)',
@@ -306,6 +364,34 @@ export default function MonthSummary() {
         </div>
       </div>
 
+      {/* ── 科目フィルター ── */}
+      {!isEmpty && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          <button
+            onClick={() => setSelectedCategory(null)}
+            style={{
+              padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              border: `1px solid ${selectedCategory === null ? 'var(--primary)' : 'var(--border)'}`,
+              background: selectedCategory === null ? 'var(--primary)' : '#fff',
+              color: selectedCategory === null ? '#fff' : 'var(--ink-soft)',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >すべて</button>
+          {[...stats].sort((a, b) => a.name.localeCompare(b.name, 'ja')).map(c => (
+            <button key={c.name}
+              onClick={() => setSelectedCategory(c.name)}
+              style={{
+                padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                border: `1px solid ${selectedCategory === c.name ? c.color : 'var(--border)'}`,
+                background: selectedCategory === c.name ? c.color : '#fff',
+                color: selectedCategory === c.name ? '#fff' : 'var(--ink-soft)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >{c.name}</button>
+          ))}
+        </div>
+      )}
+
       {/* ── 上段: 月別棒グラフ ── */}
       <div style={{
         background: 'var(--surface)',
@@ -316,14 +402,14 @@ export default function MonthSummary() {
         marginBottom: 12,
       }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>
-          月別経費推移
+          月別経費推移{selectedCategory ? ` — ${selectedCategory}` : ''}
         </div>
         {isEmpty ? (
           <div style={{ textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13, padding: '16px 0' }}>
             {emptyMsg}
           </div>
         ) : (
-          <MonthlyBarChart monthlyData={monthlyData} stats={stats} />
+          <MonthlyBarChart monthlyData={filteredMonthlyData} stats={filteredStats} />
         )}
       </div>
 
@@ -336,13 +422,14 @@ export default function MonthSummary() {
         padding: 20,
       }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 12 }}>
-          年間内訳
+          {selectedCategory ? `${selectedCategory} — 月別内訳` : '年間内訳'}
         </div>
         {isEmpty ? (
           <div style={{ textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13, padding: '16px 0' }}>
             {emptyMsg}
           </div>
-        ) : (
+        ) : selectedCategory === null ? (
+          /* すべて: 既存の科目別ドーナツ + 科目リスト */
           <div className="digest-layout">
             <div className="digest-chart">
               <div style={{ textAlign: 'center', marginBottom: 8 }}>
@@ -351,31 +438,8 @@ export default function MonthSummary() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{count}件のレシート</div>
               </div>
-              <svg width="100%" viewBox="0 0 200 200">
-                {(() => {
-                  const cx = 100, cy = 100, r = 70, strokeW = 24;
-                  const circ = 2 * Math.PI * r;
-                  let cumAngle = 0;
-                  return stats.map((c, i) => {
-                    const pct = c.amount / total;
-                    const dash = pct * circ;
-                    const gap = circ - dash;
-                    const dashOffset = -(cumAngle / (2 * Math.PI)) * circ + circ * 0.25;
-                    cumAngle += pct * 2 * Math.PI;
-                    return (
-                      <circle key={i}
-                        cx={cx} cy={cy} r={r}
-                        fill="none" stroke={c.color} strokeWidth={strokeW}
-                        strokeDasharray={`${dash} ${gap}`}
-                        strokeDashoffset={dashOffset}
-                        style={{ transition: 'stroke-dasharray .4s ease' }}
-                      />
-                    );
-                  });
-                })()}
-              </svg>
+              <DonutChart segments={stats} total={total} />
             </div>
-
             <div className="digest-list">
               {stats.map((c, i) => (
                 <div key={i} style={{
@@ -387,6 +451,39 @@ export default function MonthSummary() {
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>{c.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                     ¥{c.amount.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : monthStats.length === 0 ? (
+          /* 科目選択・該当年に支出なし */
+          <div style={{ textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13, padding: '16px 0' }}>
+            {selectedYear}年に{selectedCategory}の支出はありません
+          </div>
+        ) : (
+          /* 科目選択: 月別ドーナツ + 月別リスト */
+          <div className="digest-layout">
+            <div className="digest-chart">
+              <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
+                  ¥{monthTotal.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{selectedCategory}</div>
+              </div>
+              <DonutChart segments={monthStats} total={monthTotal} />
+            </div>
+            <div className="digest-list">
+              {monthStats.map((m, i) => (
+                <div key={m.month} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 0',
+                  borderBottom: i < monthStats.length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>{m.label}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                    ¥{m.amount.toLocaleString()}
                   </div>
                 </div>
               ))}
