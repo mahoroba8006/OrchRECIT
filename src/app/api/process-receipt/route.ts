@@ -101,8 +101,8 @@ export async function POST(req: Request) {
                 driveLink = await uploadFileToDrive(session.accessToken as string, yearFolderId, newFileName, file.type, buffer);
             }
 
-            // 処理時刻・確認事項を生成
-            const processedAt = new Date().toLocaleString('ja-JP', {
+            // 処理時刻・確認事項を生成（A列の購入日と同じ ISO 8601 ハイフン形式で統一）
+            const processedAt = new Date().toLocaleString('sv-SE', {
                 timeZone: 'Asia/Tokyo',
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit',
