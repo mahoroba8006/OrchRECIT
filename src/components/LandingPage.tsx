@@ -1,11 +1,12 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef, ReactNode } from 'react';
 import {
   Camera, Sparkles, HardDrive, FileSpreadsheet,
   BookOpen, SlidersHorizontal, ShieldCheck,
-  ArrowRight, CheckCheck, AlertCircle, Clock, Leaf,
+  ArrowRight, CheckCheck, AlertCircle, PenLine, Search,
 } from 'lucide-react';
 
 /* ── Intersection Observer で scroll-triggered fade-in ── */
@@ -45,9 +46,9 @@ function FadeIn({ children, delay = 0, style }: {
 
 /* ── データ定義 ── */
 const pains = [
-  { icon: <Clock size={24} strokeWidth={1.5} />, text: '確定申告の時期に、領収書を探し回ることがある' },
-  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目が正しいか、毎回不安になる' },
-  { icon: <Leaf size={24} strokeWidth={1.5} />, text: '記帳が面倒で後回しにしてしまう' },
+  { icon: <PenLine size={24} strokeWidth={1.5} />, text: 'レシートから手作業で記帳する作業が面倒で後回しにしてしまう' },
+  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目が正しいか、毎回確認するが、いつも不安になる' },
+  { icon: <Search size={24} strokeWidth={1.5} />, text: '確認したいレシートを探すのに時間がかかる' },
 ];
 
 const features = [
@@ -257,6 +258,27 @@ export default function LandingPage() {
           }}>
             Google アカウントがあればすぐに使えます・料金は一切かかりません
           </p>
+
+          {/* スマホモック画像 */}
+          <div className="hero-phone" style={{
+            marginTop: 64,
+            display: 'inline-block',
+            animation: 'slideUp .6s .5s ease both',
+          }}>
+            <div className="phone-frame">
+              <div className="phone-inner">
+                <Image
+                  src="/lp/home.png"
+                  alt="Orch.RECIT のホーム画面 — レシート読み込みと経費ダイジェスト"
+                  width={800}
+                  height={3778}
+                  priority
+                  sizes="(max-width: 540px) 240px, 300px"
+                  style={{ display: 'block', width: '100%', height: 'auto' }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -325,6 +347,124 @@ export default function LandingPage() {
               </FadeIn>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          PRODUCT TOUR
+      ══════════════════════════════════════════ */}
+      <section style={{ background: 'var(--surface)', padding: '96px 24px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <FadeIn>
+            <p style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.14em', marginBottom: 10, textTransform: 'uppercase' }}>Product Tour</p>
+            <h2 style={{ textAlign: 'center', fontSize: 'clamp(22px, 4vw, 36px)', fontWeight: 800, color: 'var(--ink)', marginBottom: 64, letterSpacing: '-0.01em' }}>
+              実際の画面で見る Orch.RECIT
+            </h2>
+          </FadeIn>
+
+          {/* Row 1: recit.png — AI判定理由 */}
+          <FadeIn>
+            <div className="tour-row">
+              <div className="tour-text">
+                <div className="tour-badge" style={{ background: 'var(--primary-soft)', color: 'var(--ok)' }}>
+                  <Sparkles size={13} /> OCR + AI 判定
+                </div>
+                <h3>撮るだけで、AI が判定理由まで教えてくれる</h3>
+                <p>
+                  購入日・支払先・金額の自動入力はもちろん、農業の青色申告決算書に準拠した勘定科目を Gemini AI が自動判定。「なぜその科目なのか」「按分が必要な理由」まで毎回ワンポイントで解説します。
+                </p>
+                <ul className="tour-bullets">
+                  <li><CheckCheck size={14} /> 農業専用 AI 科目判定</li>
+                  <li><CheckCheck size={14} /> 判定理由をその場で確認</li>
+                  <li><CheckCheck size={14} /> 修正もワンタップで完結</li>
+                </ul>
+              </div>
+              <div className="tour-image">
+                <div className="browser-frame">
+                  <div className="browser-bar">
+                    <span /><span /><span />
+                  </div>
+                  <Image
+                    src="/lp/recit.png"
+                    alt="Orch.RECIT — OCR結果と AI コメントの確認カード"
+                    width={472}
+                    height={410}
+                    sizes="(max-width: 880px) 90vw, 540px"
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* Row 2: summary.png — 経費ダイジェスト */}
+          <FadeIn>
+            <div className="tour-row tour-row-reverse">
+              <div className="tour-text">
+                <div className="tour-badge" style={{ background: 'var(--secondary-soft)', color: 'var(--secondary)' }}>
+                  <SlidersHorizontal size={13} /> ダッシュボード
+                </div>
+                <h3>一年の経費を、グラフで一望</h3>
+                <p>
+                  月別の支出推移と科目別の年間内訳が自動で集計されます。繁忙期と閑散期の支出の波、どの科目に偏っているか、設備投資の比率まで——確定申告前に資金の流れを把握できます。
+                </p>
+                <ul className="tour-bullets">
+                  <li><CheckCheck size={14} /> 月別の積み上げ棒グラフ</li>
+                  <li><CheckCheck size={14} /> 科目別の年間ドーナツチャート</li>
+                  <li><CheckCheck size={14} /> 高額支出の除外フィルター付き</li>
+                </ul>
+              </div>
+              <div className="tour-image">
+                <div className="phone-frame phone-frame-sm">
+                  <div className="phone-inner">
+                    <Image
+                      src="/lp/summary.png"
+                      alt="Orch.RECIT — 経費ダイジェスト画面"
+                      width={375}
+                      height={1134}
+                      sizes="(max-width: 880px) 70vw, 320px"
+                      style={{ display: 'block', width: '100%', height: 'auto' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* Row 3: history.png — 明細・AI検索 */}
+          <FadeIn>
+            <div className="tour-row">
+              <div className="tour-text">
+                <div className="tour-badge" style={{ background: '#fbecd2', color: 'var(--warn)' }}>
+                  <FileSpreadsheet size={13} /> 明細・AI 検索
+                </div>
+                <h3>必要な経費を、AI で瞬時に検索</h3>
+                <p>
+                  科目チップと年月で素早く絞り込み。さらに「車関連の支出」「12月の肥料」のような自然な言葉で AI 検索もできます。複式簿記の難しい知識がなくても、欲しい情報にすぐ辿り着けます。
+                </p>
+                <ul className="tour-bullets">
+                  <li><CheckCheck size={14} /> 自然文での AI 検索</li>
+                  <li><CheckCheck size={14} /> 科目チップ × 年月の AND 絞り込み</li>
+                  <li><CheckCheck size={14} /> 固定資産候補・按分確認タグを自動付与</li>
+                </ul>
+              </div>
+              <div className="tour-image">
+                <div className="browser-frame">
+                  <div className="browser-bar">
+                    <span /><span /><span />
+                  </div>
+                  <Image
+                    src="/lp/history.png"
+                    alt="Orch.RECIT — 明細・AI 検索画面"
+                    width={1062}
+                    height={1134}
+                    sizes="(max-width: 880px) 90vw, 540px"
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                </div>
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
@@ -646,6 +786,148 @@ export default function LandingPage() {
           </Link>
         </div>
       </footer>
+
+      {/* ══════════════════════════════════════════
+          STYLES: スマホ/ブラウザモック + Product Tour レイアウト
+      ══════════════════════════════════════════ */}
+      <style>{`
+        /* スマホ端末モック（中濃度のブルー枠） */
+        .phone-frame {
+          display: inline-block;
+          padding: 9px 9px 11px;
+          background: linear-gradient(180deg, #c5dcef, #93b6d6);
+          border-radius: 32px;
+          box-shadow:
+            0 30px 60px -22px rgba(23,148,215,.40),
+            0 0 0 1px rgba(23,148,215,.32);
+          transform: rotate(-2deg);
+          transition: transform .35s cubic-bezier(.22,1,.36,1);
+        }
+        .phone-frame:hover { transform: rotate(0deg) translateY(-2px); }
+        .phone-frame-sm { transform: rotate(0deg); }
+        .phone-frame-sm:hover { transform: translateY(-3px); }
+        .phone-inner {
+          border-radius: 24px;
+          overflow: hidden;
+          background: var(--surface);
+          max-width: 280px;
+          line-height: 0;
+        }
+        .phone-frame-sm .phone-inner { max-width: 300px; }
+
+        /* Hero のスマホ枠: home.png の上部だけを top.png 相当の比率で表示 */
+        .hero-phone .phone-inner {
+          aspect-ratio: 392 / 665;
+        }
+        .hero-phone .phone-inner img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover;
+          object-position: top;
+        }
+
+        /* ブラウザ風モック */
+        .browser-frame {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow: 0 30px 60px -20px rgba(28,80,50,.25);
+          transition: transform .35s cubic-bezier(.22,1,.36,1);
+        }
+        .browser-frame:hover { transform: translateY(-3px); }
+        .browser-bar {
+          display: flex;
+          gap: 7px;
+          padding: 11px 14px;
+          background: #f2f5f1;
+          border-bottom: 1px solid var(--border);
+        }
+        .browser-bar > span {
+          width: 11px;
+          height: 11px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+        .browser-bar > span:nth-child(1) { background: #ff5f57; }
+        .browser-bar > span:nth-child(2) { background: #febc2e; }
+        .browser-bar > span:nth-child(3) { background: #28c840; }
+
+        /* Product Tour レイアウト */
+        .tour-row {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 44px;
+          align-items: center;
+          margin-bottom: 104px;
+        }
+        .tour-row:last-child { margin-bottom: 0; }
+        .tour-text h3 {
+          font-size: clamp(22px, 3vw, 30px);
+          font-weight: 800;
+          color: var(--ink);
+          letter-spacing: -0.01em;
+          line-height: 1.35;
+          margin: 14px 0 18px;
+        }
+        .tour-text p {
+          font-size: 15px;
+          color: var(--ink-soft);
+          line-height: 1.85;
+          margin: 0 0 24px;
+        }
+        .tour-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 100px;
+          font-size: 11.5px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+        }
+        .tour-bullets {
+          list-style: none;
+          margin: 0; padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 11px;
+        }
+        .tour-bullets li {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          font-size: 13.5px;
+          color: var(--ink-soft);
+          font-weight: 500;
+        }
+        .tour-bullets li svg {
+          color: var(--primary);
+          flex-shrink: 0;
+        }
+        .tour-image {
+          display: flex;
+          justify-content: center;
+        }
+
+        @media (min-width: 880px) {
+          .tour-row {
+            grid-template-columns: 1.05fr 1fr;
+            gap: 72px;
+          }
+          .tour-row .tour-text { order: 1; }
+          .tour-row .tour-image { order: 2; }
+          .tour-row-reverse .tour-text { order: 2; }
+          .tour-row-reverse .tour-image { order: 1; }
+        }
+
+        /* Hero スマホモック — モバイル時はサイズと角度を調整 */
+        @media (max-width: 540px) {
+          .hero-phone { margin-top: 48px !important; }
+          .phone-frame { transform: rotate(0deg); }
+          .phone-inner { max-width: 230px; }
+        }
+      `}</style>
 
     </div>
   );
