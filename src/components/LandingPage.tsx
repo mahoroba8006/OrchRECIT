@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, useState, ReactNode } from 'react';
 import {
   Camera, Sparkles, HardDrive, FileSpreadsheet,
   BookOpen, SlidersHorizontal, ShieldCheck,
   ArrowRight, CheckCheck, AlertCircle, PenLine, Search,
+  ZoomIn, X,
 } from 'lucide-react';
 
 /* ── Intersection Observer で scroll-triggered fade-in ── */
@@ -46,16 +47,16 @@ function FadeIn({ children, delay = 0, style }: {
 
 /* ── データ定義 ── */
 const pains = [
-  { icon: <PenLine size={24} strokeWidth={1.5} />, text: 'レシートから手作業で記帳する作業が面倒で後回しにしてしまう' },
-  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目が正しいか、毎回確認するが、いつも不安になる' },
-  { icon: <Search size={24} strokeWidth={1.5} />, text: '確認したいレシートを探すのに時間がかかる' },
+  { icon: <PenLine size={24} strokeWidth={1.5} />, text: 'レシートから手作業で記帳する作業が面倒' },
+  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目が正しいか、毎回確認している、いつも不安になる' },
+  { icon: <Search size={24} strokeWidth={1.5} />, text: '記帳した元のレシートを探すのに時間がかかる' },
 ];
 
 const features = [
   {
     icon: <Camera size={22} />, color: '#72D07C', bg: '#e3f4e5',
     title: 'カメラ撮影 → 自動読取',
-    desc: 'スマホで撮るだけ。OCR が購入日・支払先・金額を自動で入力します。',
+    desc: 'スマホで撮るだけ。OCRで必要な情報を自動入力して、画像も保存します。',
   },
   {
     icon: <Sparkles size={22} />, color: '#1794D7', bg: '#d9edf8',
@@ -130,7 +131,30 @@ const ctaStyle: React.CSSProperties = {
   border: 'none',
 };
 
+type LightboxImage = {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+};
+
 export default function LandingPage() {
+  const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [lightbox]);
+
   return (
     <div style={{ overflowX: 'hidden' }}>
 
@@ -380,19 +404,25 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div className="tour-image">
-                <div className="browser-frame">
-                  <div className="browser-bar">
+                <button
+                  type="button"
+                  className="browser-frame zoomable"
+                  onClick={() => setLightbox({ src: '/lp/recit.png', alt: 'Orch.RECIT — OCR結果と AI コメントの確認カード', width: 2220, height: 1888 })}
+                  aria-label="OCR結果と AI コメントの確認カードを拡大表示"
+                >
+                  <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
+                  <span className="browser-bar">
                     <span /><span /><span />
-                  </div>
+                  </span>
                   <Image
                     src="/lp/recit.png"
                     alt="Orch.RECIT — OCR結果と AI コメントの確認カード"
-                    width={472}
-                    height={410}
-                    sizes="(max-width: 880px) 90vw, 540px"
+                    width={2220}
+                    height={1888}
+                    sizes="(max-width: 880px) 92vw, 540px"
                     style={{ display: 'block', width: '100%', height: 'auto' }}
                   />
-                </div>
+                </button>
               </div>
             </div>
           </FadeIn>
@@ -415,18 +445,25 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div className="tour-image">
-                <div className="phone-frame phone-frame-sm">
-                  <div className="phone-inner">
-                    <Image
-                      src="/lp/summary.png"
-                      alt="Orch.RECIT — 経費ダイジェスト画面"
-                      width={375}
-                      height={1134}
-                      sizes="(max-width: 880px) 70vw, 320px"
-                      style={{ display: 'block', width: '100%', height: 'auto' }}
-                    />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  className="browser-frame zoomable"
+                  onClick={() => setLightbox({ src: '/lp/summary.png', alt: 'Orch.RECIT — 経費ダイジェスト画面', width: 694, height: 993 })}
+                  aria-label="経費ダイジェスト画面を拡大表示"
+                >
+                  <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
+                  <span className="browser-bar">
+                    <span /><span /><span />
+                  </span>
+                  <Image
+                    src="/lp/summary.png"
+                    alt="Orch.RECIT — 経費ダイジェスト画面"
+                    width={694}
+                    height={993}
+                    sizes="(max-width: 880px) 92vw, 540px"
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                </button>
               </div>
             </div>
           </FadeIn>
@@ -440,7 +477,7 @@ export default function LandingPage() {
                 </div>
                 <h3>必要な経費を、AI で瞬時に検索</h3>
                 <p>
-                  科目チップと年月で素早く絞り込み。さらに「車関連の支出」「12月の肥料」のような自然な言葉で AI 検索もできます。複式簿記の難しい知識がなくても、欲しい情報にすぐ辿り着けます。
+                  科目チップと年月で素早く絞り込み。さらに「車関連の支出」「12月の肥料」のような自然な言葉で AI 検索もできます。あいまいな質問でも、見たい情報にすぐ辿り着けます。
                 </p>
                 <ul className="tour-bullets">
                   <li><CheckCheck size={14} /> 自然文での AI 検索</li>
@@ -449,19 +486,25 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div className="tour-image">
-                <div className="browser-frame">
-                  <div className="browser-bar">
+                <button
+                  type="button"
+                  className="browser-frame zoomable"
+                  onClick={() => setLightbox({ src: '/lp/history.png', alt: 'Orch.RECIT — 明細・AI 検索画面', width: 1062, height: 1134 })}
+                  aria-label="明細・AI 検索画面を拡大表示"
+                >
+                  <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
+                  <span className="browser-bar">
                     <span /><span /><span />
-                  </div>
+                  </span>
                   <Image
                     src="/lp/history.png"
                     alt="Orch.RECIT — 明細・AI 検索画面"
                     width={1062}
                     height={1134}
-                    sizes="(max-width: 880px) 90vw, 540px"
+                    sizes="(max-width: 880px) 92vw, 540px"
                     style={{ display: 'block', width: '100%', height: 'auto' }}
                   />
-                </div>
+                </button>
               </div>
             </div>
           </FadeIn>
@@ -927,7 +970,159 @@ export default function LandingPage() {
           .phone-frame { transform: rotate(0deg); }
           .phone-inner { max-width: 230px; }
         }
+
+        /* タップ可能フレーム（ライトボックス起動ボタン） */
+        .zoomable {
+          position: relative;
+          appearance: none;
+          padding: 0;
+          margin: 0;
+          font: inherit;
+          color: inherit;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          cursor: zoom-in;
+          display: block;
+          width: auto;
+          text-align: left;
+        }
+        .zoomable:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 3px;
+        }
+        .zoom-badge {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 2;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: rgba(17, 39, 28, 0.78);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(4px);
+          opacity: 0;
+          transform: scale(0.85);
+          transition: opacity .2s, transform .2s;
+          pointer-events: none;
+        }
+        .zoomable:hover .zoom-badge,
+        .zoomable:focus-visible .zoom-badge {
+          opacity: 1;
+          transform: scale(1);
+        }
+        /* モバイルではタップ可能であることを常時表示 */
+        @media (max-width: 880px) {
+          .zoom-badge { opacity: 1; transform: scale(1); }
+        }
+
+        /* モバイル: Product Tour 画像をフル幅に */
+        @media (max-width: 880px) {
+          .tour-image {
+            width: 100%;
+          }
+          .tour-image .browser-frame,
+          .tour-image .phone-frame {
+            width: 100%;
+            max-width: 100%;
+            display: block;
+          }
+          .tour-image .phone-inner {
+            max-width: 100% !important;
+          }
+        }
+
+        /* ライトボックス */
+        .lightbox-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: rgba(8, 18, 12, 0.86);
+          backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          animation: lightboxFade .18s ease-out;
+        }
+        @keyframes lightboxFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .lightbox-content {
+          position: relative;
+          max-width: 95vw;
+          max-height: 90vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .lightbox-content img {
+          max-width: 95vw;
+          max-height: 90vh;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          border-radius: 10px;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+          display: block;
+        }
+        .lightbox-close {
+          position: fixed;
+          top: 18px;
+          right: 18px;
+          z-index: 10000;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255,255,255,0.92);
+          color: #11271c;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+          transition: transform .15s, background .15s;
+        }
+        .lightbox-close:hover { transform: scale(1.06); background: #fff; }
+        .lightbox-close:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 3px;
+        }
       `}</style>
+
+      {lightbox && (
+        <div
+          className="lightbox-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="画像を拡大表示"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            className="lightbox-close"
+            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            aria-label="閉じる"
+          >
+            <X size={22} strokeWidth={2.2} />
+          </button>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={lightbox.src}
+              alt={lightbox.alt}
+              width={lightbox.width}
+              height={lightbox.height}
+              sizes="95vw"
+              priority
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );
