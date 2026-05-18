@@ -510,3 +510,188 @@
 - ブラウザ実機確認
 - カスタムドメイン取得後 Cloudflare Pages に設定
 - 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-18 セッション③
+
+### 作業内容
+
+#### 1. サンプル店舗名のマスキング（前セッションの取りこぼし対応）
+- 実在の市・地名・大手ブランドを含む14店舗を全て架空名にリネーム
+  - 中野市果樹組合→やまなみ果樹組合・ドコモショップ中野店→モバイルセンター駅前店
+  - スズキ自動車販売→アルテア自動車・ヤマト運輸→クイック宅配便
+  - 中部電力サービス→コアエナジー電力・JA信州ながの→JAみのりの里
+  - 信越段ボール工業→エコパック工業・千曲川運輸→さとやま運輸
+  - 軽井沢ホームセンター→グリーンホームセンター・信州書房→みのり書房
+  - 信州アグリ農機センター→アグリテック農機センター・北信園芸資材→ナチュラル園芸資材
+  - やまびこガソリンスタンド→オアシス石油・グリーンファーム肥料商会→ファーマーズ肥料
+
+#### 2. LP 実画像実装（5枚配置）
+- `public/lp/` 配下に画像5枚を配置（home/top/summary/recit/history）
+- `Summary .png` を `summary.png` にリネーム（スペース除去）
+- 各画像の実サイズを確認し、`next/image` の `width/height` プロパティを実画像比に合わせて指定
+  - home.png: 800×3778（縦超長）／top.png: 392×665／summary.png: 375×1134
+  - recit.png: 472×410／history.png: 1062×1134
+
+#### 3. Hero セクションにスマホモック額装で home.png を配置
+- CTA直下に `<div className="phone-frame">` でスマホ端末モック額装
+- 背景: 中濃度ブルーグラデ `linear-gradient(180deg, #c5dcef, #93b6d6)`
+- `-2deg` 回転、hover で水平＋微上昇、モバイル幅では回転解除
+- `aspect-ratio: 392/665` + `object-fit: cover; object-position: top` で home.png の上部のみ表示（途中で切れる）
+
+#### 4. Product Tour セクションを Features と Knowledge の間に新設
+- 3画面を zig-zag レイアウトで紹介（各セクションに badge / 見出し / 段落 / チェック箇条書き）
+  - Row 1: recit.png（ブラウザフレーム）「撮るだけで、AI が判定理由まで教えてくれる」
+  - Row 2: summary.png（スマホモック・reverse zig-zag）「一年の経費を、グラフで一望」
+  - Row 3: history.png（ブラウザフレーム）「必要な経費を、AI で瞬時に検索」
+- macOS風ブラウザフレーム（赤黄緑ドット）と中濃度ブルーのスマホモックを混在
+- モバイル幅では1カラム積み重ねに自動切替
+
+#### 5.「こんなお悩みありませんか？」の文言改修
+- 旧3項目 → 新3項目：
+  1. 「確定申告の時期に、領収書を探し回ることがある」→「レシートから手作業で記帳する作業が面倒で後回しにしてしまう」
+  2. 「勘定科目が正しいか、毎回不安になる」→「勘定科目が正しいか、毎回確認するが、いつも不安になる」
+  3. 「記帳が面倒で後回しにしてしまう」→「確認したいレシートを探すのに時間がかかる」
+- アイコン差し替え: Clock→Search、Leaf→PenLine（AlertCircle 維持）
+
+#### 6. Git push（3コミットに分割）
+- `d19597c` feat: LP用サンプル経費データを追加（果樹園想定・120件）
+- `8d64fe3` fix: 取込日時を購入日と同じISO 8601形式に統一
+- `501c709` feat: LP改修 - 実画面スクショ・Product Tour・悩み文言を改修
+- `origin/main` に push 完了 → Cloudflare Pages 自動デプロイ走行中
+
+### 決定事項
+- LP の実画像配置パターン: Hero=スマホモック1枚、Product Tour=zig-zag 3画面の構成で確定
+- スマホモック枠は中濃度ブルー（`#c5dcef → #93b6d6`）グラデーションで Sprout のセカンダリブルー系統と整合
+- ブラウザフレームと スマホモックの使い分け: PC幅スクショ=ブラウザ、モバイル幅スクショ=スマホ
+- home.png は途中で切れる前提（aspect-ratio クロップで Hero 用に上部のみ表示）
+
+### 過程で得た学び
+- next/image の `width/height` 属性は intrinsic ratio 計算用なので、実画像サイズと一致させないと余白や歪みが生じる
+- 「画像にはコンテンツしかなくても、スマホ枠が縦に長く見える」現象は、コードの aspect-ratio 強制が原因のケースがある
+- LP 用画像のサイズ確認は file コマンド（`PNG image data, W x H`）が最速・確実
+
+### 未完了タスク（既存継続）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: https://orchrecit.pages.dev/privacy）
+- ブラウザ実機確認（LP 全セクション・モバイル375px・`/dashboard` のログインフロー）
+- カスタムドメイン取得後 Cloudflare Pages に設定
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-18 セッション④
+
+### 作業内容
+
+#### 1. 前回プッシュのデプロイ反映確認（WebFetch 検証）
+- `/` LP・`/dashboard`・`/privacy` の3ルートを WebFetch で本番検証
+- LP: 新Pain文言3つ・Product Tour 3行・実画像4枚（home/recit/summary/history）すべて反映確認、旧文言の残存ゼロ
+- `/dashboard`: AppShell が正常応答、未ログインで「Googleでログインして始める」を表示。**5/5 の Cloudflare 誤動作（LP内容混入）の再発なし**を確認
+- `/privacy`: 8セクション・更新日・連絡先メール維持
+
+#### 2. Product Tour モバイル UX 改修（`LandingPage.tsx`）
+- summary.png 差替: 375×1134（旧スマホ縦長）→ 694×993（新デスクトップ全体ビュー）
+- Row 2 のフレームを `phone-frame phone-frame-sm` → `browser-frame` に変更（横長スクショに合わせて Row 1/3 と統一）
+- モバイル（≤880px）で Product Tour 画像を全幅表示（`.tour-image .browser-frame { width: 100%; max-width: 100% }`）
+- タップで拡大表示するライトボックスを実装
+  - `useState<LightboxImage|null>` + `useEffect` で ESC キー / body スクロールロック
+  - `<button className="browser-frame zoomable">` で各 Tour 画像をラップ
+  - 右上に `<ZoomIn>` バッジ（PC=ホバー表示、モバイル=常時表示）
+  - 黒透過背景 + 画像中央配置、`max-width: 95vw, max-height: 90vh, object-fit: contain`
+  - 閉じ手段3経路（背景クリック / × ボタン / ESC）+ `aria-modal="true"` で a11y 対応
+- HTML仕様対応: `<button>` 内の `<div className="browser-bar">` を `<span>` に変更（button の子要素は phrasing content のみ許可される）
+
+#### 3. LP 文言修正4箇所
+- Pain #1: 「〜後回しにしてしまう」→「〜面倒」（短縮）
+- Pain #2: 「〜毎回確認するが」→「〜毎回確認している、いつも不安になる」
+- Pain #3: 「確認したいレシートを〜」→「記帳した元のレシートを〜」
+- Features カメラ: 「OCR が購入日・支払先・金額を自動で入力」→「OCRで必要な情報を自動入力して、画像も保存します」
+- Tour Row 3: 「複式簿記の難しい知識がなくても」→「あいまいな質問でも、見たい情報にすぐ辿り着けます」
+
+#### 4. recit.png 差替（高解像度版）
+- 472×410 → 2220×1888（同比率の高解像度版、約4.7倍）
+- `next/image` の width/height を実画像比に同期、srcset で 3840w まで自動生成
+
+#### 5. コミット & プッシュ（commit 6e67909）
+- `feat: LP — Product Tour画像のモバイル全幅化・ライトボックス追加・文言調整`
+- 変更: public/lp/recit.png, public/lp/summary.png, src/components/LandingPage.tsx（+225/-30）
+
+#### 6. プライバシーポリシーのメールアドレス記載リスクを相談
+- 個人 Gmail 直接記載の3つのリスク：スパム激増・個人情報露出（名前推測可能）・課金開始時の特商法表記との不整合
+- 大手 SaaS（freee/MFクラウド/Notion/Stripe）はメアド直接記載なし。問い合わせフォーム or 共有アドレス（`privacy@`/`support@` 等）が業界慣例
+- **推奨方針**: カスタムドメイン取得時にセットで Cloudflare Email Routing（無料）で `support@orchrecit.com` → 個人 Gmail に転送設定。プライバシーポリシー・LPフッターのメアドを置換
+- ユーザー対応待ち（ドメイン取得タイミング）
+
+#### 7. ライトボックス画像のズーム拡張
+- タップ/クリックで原寸 ⇄ フィットをトグル（`zoomed` state 追加）
+- 原寸モードでコンテナをスクロール可能（`overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch`）
+- 画面下中央に「タップで原寸表示/縮小」ヒントバッジを常時表示（`pointer-events: none`）
+- `next/image sizes="100vw"` で srcset 最大解像度（最大3840w）を取得
+- ESLint `react-hooks/set-state-in-effect` 警告を `openLightbox` / `closeLightbox` ハンドラに集約して回避
+- カーソル: `zoom-in` ⇄ `zoom-out` 自動切替
+
+#### 8. キャッチコピー戦略相談（5案提示 → 過大表現問題発覚）
+- 当初5案: A数字訴求 / B差別化 / C共感 / Dシーン / E税理士いらず
+- ユーザーが「Hero=B、副題=C、CTA=E軟化」の組み合わせ戦略を選択
+- **重大な発見**: 「AIに任せる」「税理士いらず」「申告が終わる」系は**過大表現**（景表法）+ **税理士法第52条**（税理士業務の独占）のリスクあり
+- 本ツールは **記帳・経費整理の補助** であり、申告書作成・税務代行は行わない
+- 元提案5案を再評価: A/B/E は NG、C/D は OK と判定
+
+#### 9. フィードバックメモリ保存（`feedback_copy_scope_orchrecit.md` 新規）
+- 補助ツールとしてのスコープ制約・OK/NG語彙リスト・判定基準を記録
+- MEMORY.md にインデックス追加
+- 今後すべてのコピー作業（LP・OGP・SNS・広告）に適用
+
+#### 10. LP全体スコープ監査（8箇所のスコープ違反を発見）
+- 🔴 HIGH 4箇所: Hero h1 / metadata title / steps[2]最終文 / Knowledge chip「税務ルールに基づく助言」
+- 🟡 MEDIUM 4箇所: How it works h2 / metadata description / Knowledge副題「確定申告の不安」/ Custom AI 本文「運賃として処理」
+
+#### 11. 監査結果に基づく8箇所修正
+- steps[2].desc: 「確定申告時は台帳を開くだけです」→「確定申告の準備が、これで整います」
+- Knowledge chip: 「農業法規・税務ルールに基づく助言」→「農業会計・税務ルールに基づく解説」
+- How it works h2: 「3 ステップで完了」→「記帳は、3 ステップで完了」
+- metadata description: 「青色申告対応の農業経費」→「青色申告の経費記録に対応した、農家向け」
+- Knowledge 副題: 「確定申告の不安が、少しずつ減ります」→「記帳の迷いが、少しずつなくなります」
+- Custom AI 本文: 「A 農協への支払いは運賃として処理」→「A 農協への支払いは荷造運賃費として分類」
+
+#### 12. キャッチコピー最終決定（Hero / 副題 / Final CTA を全面刷新）
+- ユーザーが Pattern A 系 + 時間訴求 のハイブリッドを最終選択
+- Hero h1: 「農家のための、記帳AI。」→ **「農業経費の整理は、撮るだけ。」**
+- Hero 副題: 「AI がレシートを読んで〜」→ **「AI がレシートを読み取り、農業専用の勘定科目まで判定。データはすべてあなたの Google Drive に。外部サーバーは使いません。」**
+- Final CTA: 「農業経費の記録を、今日から変えよう」→ **「迷わず進める経費の管理。記帳の時間を、畑の時間に。」**
+- metadata title 同期: 「Orch.RECIT — 農業経費の整理は、撮るだけ。」
+
+#### 13. LP セクション順序の議論（α採用で現状維持）
+- ユーザーが「Custom AI を上位、Product Tour を下位」への順序変更を提案
+- マーケター視点で**3つの懸念**を指摘して現状維持を推奨：
+  - スクロール深度の現実（Product Tour は #4 以内必須）
+  - 抽象→抽象→抽象→抽象→具体 の死の行進
+  - 「差別化を早く見せたい」の動機は正しいが打ち手が間違い
+- 結論: 現状の `Pain → Features → Tour → Knowledge → Privacy → Custom AI → How → Pricing` を維持
+- 差別化強化したい場合は順番ではなく視覚デザインで解決（背景色・アイコン・"OUR DIFFERENCE" バッジなど）
+
+#### 14. コミット & プッシュ（commit fede96b）
+- `feat: LP ライトボックス拡大機能 + コピーをスコープ準拠で全面改修`
+- 変更: src/app/layout.tsx, src/components/LandingPage.tsx（+82/-23）
+
+### 決定事項
+- LP コピー方針: **補助ツールのスコープ厳守**（記帳・経費整理・科目判定・分類・解説のみ）
+- セクション順序: **現状維持**（Pain → Features → Tour → Knowledge → Privacy → Custom AI → How → Pricing）
+- ライトボックス挙動: フィット表示 ⇄ 原寸表示 をタップでトグル + 画面下にヒント
+- プライバシーポリシーのメアドは **カスタムドメイン取得時に Cloudflare Email Routing で `support@orchrecit.com` に切替**予定（個人 Gmail 直接記載は中長期で要解消）
+
+### 過程で得た学び
+- `<button>` 内に `<div>` を入れるとHTML仕様違反（hydration警告/レンダリング崩れ）。phrasing content（span/img）に揃える必要あり
+- ESLint `react-hooks/set-state-in-effect` 警告は useEffect 内の setState を別ハンドラに切り出して回避できる
+- `next/image sizes="100vw"` で srcset 最大解像度（最大3840w）まで自動取得される
+- **コピー作業の前にスコープを定義する**（補助ツール／代行ツールの境界）。これを怠るとマーケター視点で「魅力的だが法的に危険」な案を量産する
+- 「AIに任せる」「税理士いらず」「申告が終わる」は景表法・税理士法第52条のリスク表現
+- 大手 SaaS のプライバシーポリシーは**メアド直接記載なし**が業界慣例（共有アドレス／問い合わせフォーム）
+- LP の Product Tour（実画面スクショ）は #4 以内に配置するのが定石。これを動かすと CVR が落ちる
+
+### 未完了タスク（既存継続）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: https://orchrecit.pages.dev/privacy）
+- カスタムドメイン取得 → Cloudflare Email Routing で `support@orchrecit.com` 切替 → プライバシーポリシー・LP メアド置換
+- ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
