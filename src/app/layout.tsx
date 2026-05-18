@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Orch.RECIT — 農業経費を、撮って終わり。',
-  description: 'AI がレシートを読んで農業専用の勘定科目まで判定。データはすべてあなたの Google Drive に保存されます。青色申告対応の農業経費 AI 領収書アプリ。',
+  title: 'Orch.RECIT — 農業経費の整理は、撮るだけ。',
+  description: 'AI がレシートを読み取り、農業専用の勘定科目まで判定。データはすべてあなたの Google Drive に保存されます。青色申告の経費記録に対応した、農家向け AI 領収書アプリ。',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/icon.png',

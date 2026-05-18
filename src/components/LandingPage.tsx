@@ -7,7 +7,7 @@ import {
   Camera, Sparkles, HardDrive, FileSpreadsheet,
   BookOpen, SlidersHorizontal, ShieldCheck,
   ArrowRight, CheckCheck, AlertCircle, PenLine, Search,
-  ZoomIn, X,
+  ZoomIn, ZoomOut, X,
 } from 'lucide-react';
 
 /* ── Intersection Observer で scroll-triggered fade-in ── */
@@ -104,7 +104,7 @@ const steps = [
   {
     icon: <CheckCheck size={28} />,
     title: '「取込」ボタンで完了',
-    desc: '1 タップで Drive と Sheets に自動保存。確定申告時は台帳を開くだけです。',
+    desc: '1 タップで Drive と Sheets に自動保存。確定申告の準備が、これで整います。',
   },
 ];
 
@@ -140,13 +140,23 @@ type LightboxImage = {
 
 export default function LandingPage() {
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
+  const [zoomed, setZoomed] = useState(false);
+
+  const openLightbox = (img: LightboxImage) => {
+    setZoomed(false);
+    setLightbox(img);
+  };
+  const closeLightbox = () => {
+    setLightbox(null);
+    setZoomed(false);
+  };
 
   useEffect(() => {
     if (!lightbox) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightbox(null);
+      if (e.key === 'Escape') closeLightbox();
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -251,8 +261,8 @@ export default function LandingPage() {
             marginBottom: 28,
             animation: 'slideUp .6s .1s ease both',
           }}>
-            農業経費を、<br />
-            <span style={{ color: 'var(--primary)', WebkitTextStroke: '0.5px var(--primary)' }}>撮って終わり。</span>
+            農業経費の整理は、<br />
+            <span style={{ color: 'var(--primary)', WebkitTextStroke: '0.5px var(--primary)' }}>撮るだけ。</span>
           </h1>
 
           {/* サブコピー */}
@@ -264,7 +274,7 @@ export default function LandingPage() {
             margin: '0 auto 44px',
             animation: 'slideUp .6s .2s ease both',
           }}>
-            AI がレシートを読んで、農業専用の勘定科目まで判定。<br />
+            AI がレシートを読み取り、農業専用の勘定科目まで判定。<br />
             データはすべてあなたの Google Drive に。外部サーバーは使いません。
           </p>
 
@@ -407,7 +417,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   className="browser-frame zoomable"
-                  onClick={() => setLightbox({ src: '/lp/recit.png', alt: 'Orch.RECIT — OCR結果と AI コメントの確認カード', width: 2220, height: 1888 })}
+                  onClick={() => openLightbox({ src: '/lp/recit.png', alt: 'Orch.RECIT — OCR結果と AI コメントの確認カード', width: 2220, height: 1888 })}
                   aria-label="OCR結果と AI コメントの確認カードを拡大表示"
                 >
                   <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
@@ -448,7 +458,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   className="browser-frame zoomable"
-                  onClick={() => setLightbox({ src: '/lp/summary.png', alt: 'Orch.RECIT — 経費ダイジェスト画面', width: 694, height: 993 })}
+                  onClick={() => openLightbox({ src: '/lp/summary.png', alt: 'Orch.RECIT — 経費ダイジェスト画面', width: 694, height: 993 })}
                   aria-label="経費ダイジェスト画面を拡大表示"
                 >
                   <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
@@ -489,7 +499,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   className="browser-frame zoomable"
-                  onClick={() => setLightbox({ src: '/lp/history.png', alt: 'Orch.RECIT — 明細・AI 検索画面', width: 1062, height: 1134 })}
+                  onClick={() => openLightbox({ src: '/lp/history.png', alt: 'Orch.RECIT — 明細・AI 検索画面', width: 1062, height: 1134 })}
                   aria-label="明細・AI 検索画面を拡大表示"
                 >
                   <span className="zoom-badge" aria-hidden="true"><ZoomIn size={14} /></span>
@@ -558,13 +568,13 @@ export default function LandingPage() {
 
             <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', lineHeight: 1.85, marginBottom: 44 }}>
               「なぜ種苗費なのか」「按分が必要な理由」——AI は判定結果だけでなく、<br />
-              毎回ワンポイントアドバイスを添えます。確定申告の不安が、少しずつ減ります。
+              毎回ワンポイントアドバイスを添えます。記帳の迷いが、少しずつなくなります。
             </p>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
               {[
                 '科目の判定根拠を毎回解説',
-                '農業法規・税務ルールに基づく助言',
+                '農業会計・税務ルールに基づく解説',
                 '積み重なるほど申告に自信がつく',
               ].map((t, i) => (
                 <div key={i} style={{
@@ -650,7 +660,7 @@ export default function LandingPage() {
               あなたの農業経営に合わせた AI
             </h2>
             <p style={{ fontSize: 14.5, color: 'var(--ink-soft)', lineHeight: 1.8, marginBottom: 44, maxWidth: 600, margin: '0 auto 44px' }}>
-              税務署管内特有の科目処理や、ご自身の判断基準を AI に直接指示できます。「A 農協への支払いは運賃として処理」といった個別ルールも登録可能です。
+              税務署管内特有の科目処理や、ご自身の判断基準を AI に直接指示できます。「A 農協への支払いは荷造運賃費として分類」といった個別ルールも登録可能です。
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
               {[
@@ -682,7 +692,7 @@ export default function LandingPage() {
           <FadeIn>
             <p style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', letterSpacing: '0.14em', marginBottom: 10, textTransform: 'uppercase' }}>How it works</p>
             <h2 style={{ textAlign: 'center', fontSize: 'clamp(22px, 4vw, 36px)', fontWeight: 800, color: 'var(--ink)', marginBottom: 56, letterSpacing: '-0.01em' }}>
-              3 ステップで完了
+              記帳は、3 ステップで完了
             </h2>
           </FadeIn>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 36 }}>
@@ -786,7 +796,7 @@ export default function LandingPage() {
             marginBottom: 18, letterSpacing: '-0.02em',
             lineHeight: 1.2,
           }}>
-            農業経費の記録を、<br />今日から変えよう
+            迷わず進める経費の管理。<br />記帳の時間を、畑の時間に。
           </h2>
           <p style={{ fontSize: 16, color: 'var(--ink)', opacity: 0.72, marginBottom: 44, lineHeight: 1.75 }}>
             Google アカウントでログインするだけ。設定不要、すぐに使えます。
@@ -1060,15 +1070,55 @@ export default function LandingPage() {
           align-items: center;
           justify-content: center;
         }
+        .lightbox-content[data-zoomed="true"] {
+          display: block;
+          overflow: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+          background: rgba(0,0,0,0.2);
+          border-radius: 10px;
+        }
         .lightbox-content img {
-          max-width: 95vw;
-          max-height: 90vh;
           width: auto;
           height: auto;
-          object-fit: contain;
           border-radius: 10px;
           box-shadow: 0 30px 80px rgba(0,0,0,0.5);
           display: block;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        .lightbox-content[data-zoomed="false"] img {
+          max-width: 95vw;
+          max-height: 90vh;
+          object-fit: contain;
+        }
+        .lightbox-content[data-zoomed="true"] img {
+          max-width: none;
+          max-height: none;
+          border-radius: 0;
+          margin: 0 auto;
+        }
+        .lightbox-hint {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 10000;
+          background: rgba(255,255,255,0.92);
+          color: #11271c;
+          border-radius: 100px;
+          padding: 7px 14px;
+          font-size: 12.5px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          pointer-events: none;
+          backdrop-filter: blur(4px);
+        }
+        @media (max-width: 540px) {
+          .lightbox-hint { bottom: 18px; font-size: 11.5px; padding: 6px 12px; }
         }
         .lightbox-close {
           position: fixed;
@@ -1101,25 +1151,34 @@ export default function LandingPage() {
           role="dialog"
           aria-modal="true"
           aria-label="画像を拡大表示"
-          onClick={() => setLightbox(null)}
+          onClick={closeLightbox}
         >
           <button
             type="button"
             className="lightbox-close"
-            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
             aria-label="閉じる"
           >
             <X size={22} strokeWidth={2.2} />
           </button>
-          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="lightbox-content"
+            data-zoomed={zoomed}
+            onClick={(e) => e.stopPropagation()}
+          >
             <Image
               src={lightbox.src}
               alt={lightbox.alt}
               width={lightbox.width}
               height={lightbox.height}
-              sizes="95vw"
+              sizes="100vw"
               priority
+              onClick={() => setZoomed((z) => !z)}
+              style={{ cursor: zoomed ? 'zoom-out' : 'zoom-in' }}
             />
+          </div>
+          <div className="lightbox-hint" aria-live="polite">
+            {zoomed ? <><ZoomOut size={14} /> タップで縮小</> : <><ZoomIn size={14} /> タップで原寸表示</>}
           </div>
         </div>
       )}
