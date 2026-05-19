@@ -7,7 +7,7 @@ import {
   Camera, Sparkles, HardDrive, FileSpreadsheet,
   BookOpen, SlidersHorizontal, ShieldCheck,
   ArrowRight, CheckCheck, AlertCircle, PenLine, Search,
-  ZoomIn, ZoomOut, X,
+  ZoomIn, ZoomOut, X, ListChecks,
 } from 'lucide-react';
 
 /* ── Intersection Observer で scroll-triggered fade-in ── */
@@ -87,6 +87,11 @@ const features = [
     icon: <CheckCheck size={22} />, color: '#2faa55', bg: '#dff2e4',
     title: '重複チェック・確認タグ',
     desc: '二重取込を自動検知。固定資産候補・按分確認が必要なレシートには自動でタグ付与。',
+  },
+  {
+    icon: <ListChecks size={22} />, color: '#72D07C', bg: '#e3f4e5',
+    title: '明細ごとに、取込と科目を判定',
+    desc: '1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目が判定されます。',
   },
 ];
 
