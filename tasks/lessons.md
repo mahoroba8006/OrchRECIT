@@ -178,3 +178,52 @@ LP用サンプル経費データを `2025/1/8` 形式（スラッシュ区切り
 - 棒グラフY軸スケールが `0〜1` に潰れている（`niceMax(Math.max(...monthTotals, 1))` で 1 になっている）
 - スプレッドシートのA列の表示形式が `2025/01/08` のようなスラッシュになっている
 - → 日付パース（`split('-')`）の前提崩壊を疑う
+
+---
+
+## 🔧 8. const リテラル代入の literal type narrowing と「準備中→本番」分岐の落とし穴
+
+### 🚨 症状
+`/contact` ページに Tally フォーム ID をプレースホルダーで仮置きし、後で実値に書き換えるパターンを採用：
+
+```typescript
+const TALLY_FORM_ID = '449DEk';  // 当初は 'PLACEHOLDER'
+const IS_READY = TALLY_FORM_ID !== 'PLACEHOLDER';  // ❌ 型エラー
+```
+
+ローカルビルドは通ったが、Cloudflare Pages 本番ビルドで以下のエラー：
+
+```
+Type error: This comparison appears to be unintentional because the types '"449DEk"' and '"PLACEHOLDER"' have no overlap.
+```
+
+### 🔬 原因
+TypeScript の `const` 宣言にリテラル文字列を代入すると、変数の型は**リテラル型**（`'449DEk'`）に narrowing される。`!== 'PLACEHOLDER'` という比較は、型レベルで「絶対に true」と判定でき、TS は「意図しない比較」と判定してエラーを出す（`@typescript-eslint/no-unnecessary-condition` 相当のルールが strict mode で有効化される）。
+
+### ✅ 対策
+**起こり得ない分岐は最初から書かない**（CLAUDE.md「起こり得ないシナリオへのフォールバックを書かない」原則）。
+
+```typescript
+// ❌ NG: プレースホルダー検出ロジックを残す
+const TALLY_FORM_ID = '449DEk';
+const IS_READY = TALLY_FORM_ID !== 'PLACEHOLDER';
+
+// ✅ OK: ID 確定後は分岐を削除して iframe を直接レンダリング
+const TALLY_FORM_ID = '449DEk';
+const TALLY_EMBED_URL = `https://tally.so/embed/${TALLY_FORM_ID}?...`;
+```
+
+どうしても準備中分岐を残したいなら：
+- `const TALLY_FORM_ID: string = '449DEk';` で型を `string` に広げる（明示型注釈）
+- 環境変数 `process.env.TALLY_FORM_ID` で読む（型は string でリテラル narrowing されない）
+
+### 🎯 教訓
+- **「準備中 → 本番」プレースホルダー比較は const literal narrowing の罠**。本番 ID 確定時点で分岐自体を削除する習慣を持つ。
+- **ローカルビルドが通っても安心しない**。プレースホルダー値で1回ビルド成功 → 実値に差し替え後にもう一度ビルドを回す。型推論は値で変わる。
+- **CF Pages のビルドは型エラーで止まる**。`next build` の TypeScript チェックは strict（`tsconfig.json` の設定で `strict: true` 相当）で、ローカル `npm run dev` では出ない型エラーが本番ビルドで露呈する。
+- **検証のマインドセット（lessons.md §5）の延長**: 「値を差し替えたら build を回す」を反射的に実行する。差し替え→push→CFビルド失敗→修正→再push の二度手間を防ぐ。
+
+### 🔍 診断のシグナル
+- `Type error: This comparison appears to be unintentional because the types 'X' and 'Y' have no overlap.`
+- `const` リテラル代入 + 文字列比較
+- ローカル `npm run dev` では発覚しないが `next build` で発覚する
