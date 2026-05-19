@@ -7,6 +7,11 @@ const withPWA = withPWAInit({
   register: true,
   workboxOptions: {
     navigateFallback: null,
+    // 新しい SW を即座にアクティブ化し、既存タブも即座に新 SW の制御下に置く。
+    // さらに古いキャッシュを自動削除して、デプロイ後のキャッシュ汚染を防止する（lessons.md §9 参照）。
+    skipWaiting: true,
+    clientsClaim: true,
+    cleanupOutdatedCaches: true,
     // Cloudflare の特殊設定ファイル (_headers, _routes.json) は HTTP リソースとして 404 を返すため
     // SW の precache から除外する。public/ 配下のファイルは workboxOptions.exclude では除去できないので manifestTransforms を使用する。
     manifestTransforms: [

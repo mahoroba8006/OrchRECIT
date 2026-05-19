@@ -227,3 +227,50 @@ const TALLY_EMBED_URL = `https://tally.so/embed/${TALLY_FORM_ID}?...`;
 - `Type error: This comparison appears to be unintentional because the types 'X' and 'Y' have no overlap.`
 - `const` リテラル代入 + 文字列比較
 - ローカル `npm run dev` では発覚しないが `next build` で発覚する
+
+---
+
+## 🔄 9. PWA Service Worker のキャッシュ汚染で他ページのコンテンツが混入する
+
+### 🚨 症状
+本番デプロイ後、ユーザーが `/privacy` を開いてフッターまでスクロールすると、**フッターの下に別ページ（LP）の Product Tour 画像「一年の経費を、グラフで一望」**が表示される。シェルが壊れたかのような UI 汚染。
+
+切り分けで判明したこと：
+- WebFetch で本番サーバーの `/privacy` HTML を取得 → LP 関連の文字列は**含まれていない**（サーバー側は正常）
+- 症状はクライアント側でのみ発生
+- ハードリフレッシュ・シークレットウィンドウ・SW Unregister のいずれかで解消
+
+### 🔬 原因
+`@ducanh2912/next-pwa` で生成される Service Worker のキャッシュ戦略が緩く、デプロイによって SW が更新されても以下が発生していた：
+
+1. **`clientsClaim` がデフォルト false**: 新 SW がアクティブになっても、既に開いているタブは古い SW の制御下にあり続ける
+2. **`cleanupOutdatedCaches` がデフォルト false**: workbox のリビジョン違いの古いキャッシュが残り続ける
+3. **`skipWaiting` はデフォルト true** だが、上記2つが無いと「新 SW はインストール済み・古い SW がタブを制御」というハイブリッド状態が長期化する
+
+この状態で過去にキャッシュされた HTML/CSS の断片がレンダリングに混入し、本来含まれていない要素が画面下部に表示されるなどの「シェル汚染」が起きる。React 19 の hydration や複数タブ間のキャッシュ共有が絡むと、より発生しやすい。
+
+### ✅ 対策
+`next.config.ts` の `workboxOptions` に3つの設定を明示：
+
+```typescript
+workboxOptions: {
+  navigateFallback: null,
+  skipWaiting: true,         // 新 SW を即座にアクティブ化（デフォルトでも true だが明示）
+  clientsClaim: true,        // 既存タブを即座に新 SW の制御下に置く
+  cleanupOutdatedCaches: true, // 古いリビジョンのキャッシュを自動削除
+  manifestTransforms: [ ... ],
+  exclude: [ ... ],
+},
+```
+
+### 🎯 教訓
+- **PWA デフォルト設定は本番更新頻度の高いプロジェクトには緩すぎる**。3点セットを明示するのが標準ベストプラクティス。
+- **「ユーザーに DevTools を開かせる対応は不可能」**: 農家のような非エンジニアユーザーには SW Unregister の指示は通らない。設定で予防する以外に方法がない。
+- **症状が「別ページの要素が混入する」場合、まずサーバー応答 HTML を WebFetch で確認**。サーバー側に該当要素がなければクライアント側（SW・拡張・ブラウザキャッシュ）に絞れる。
+- **PWA は副作用が見えにくい**: 開発時は `disable: process.env.NODE_ENV === "development"` で SW が動かないため、症状はステージング・本番でしか露呈しない。デプロイ後に必ずシークレットウィンドウで動作確認する習慣を持つ。
+
+### 🔍 診断のシグナル
+- 本番のみで再現、ローカル `npm run dev` では起きない
+- ハードリフレッシュ・シークレットウィンドウで解消する
+- DevTools → Application → Service Workers にアクティブな SW がある
+- WebFetch でサーバー HTML を取得すると問題の要素が含まれていない（クライアント側起因の確定）
