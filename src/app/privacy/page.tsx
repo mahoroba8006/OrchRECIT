@@ -102,6 +102,18 @@ const sections = [
         <ul>
           <li>本アプリのホスティング（Cloudflare Pages）</li>
         </ul>
+
+        <h3>Tally Forms（株式会社 Tally）</h3>
+        <ul>
+          <li>お問い合わせフォームの提供および受付内容の中継</li>
+          <li>フォーム送信時、入力された氏名・メールアドレス・お問い合わせ内容が Tally のサーバーを経由して当方の運用メールへ転送されます</li>
+        </ul>
+        <p>
+          <a href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener noreferrer">
+            Tally プライバシーポリシー →
+          </a>
+        </p>
+
         <p>上記以外の第三者にユーザーの個人情報を提供することはありません。</p>
       </>
     ),
@@ -136,8 +148,12 @@ const sections = [
     title: '7. お問い合わせ',
     content: (
       <>
-        <p>本プライバシーポリシーに関するご質問・ご意見は、以下までお問い合わせください。</p>
-        <p><strong>Email：</strong>support@orch-app.com</p>
+        <p>本プライバシーポリシーに関するご質問・ご意見は、以下のお問い合わせフォームよりご連絡ください。</p>
+        <p>
+          <Link href="/contact" style={{ color: 'var(--secondary)', fontWeight: 600, textDecoration: 'none' }}>
+            お問い合わせフォーム →
+          </Link>
+        </p>
       </>
     ),
   },
@@ -263,9 +279,12 @@ export default function PrivacyPage() {
           <SproutLogo size={18} />
           <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--ink)' }}>Orch.RECIT</span>
         </div>
-        <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             トップページ
+          </Link>
+          <Link href="/contact" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
+            お問い合わせ
           </Link>
           <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             アプリを開く

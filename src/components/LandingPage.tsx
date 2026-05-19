@@ -829,13 +829,17 @@ export default function LandingPage() {
         <p style={{ fontSize: 12, color: 'var(--ink-mute)', margin: '0 0 10px' }}>
           農業経費 AI 領収書アプリ
         </p>
-        <div style={{ display: 'flex', gap: 24, justifyContent: 'center', alignItems: 'center' }}>
-          <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
-            アプリを開く →
+        <div style={{ display: 'flex', gap: 18, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link href="/contact" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
+            お問い合わせ
           </Link>
           <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
           <Link href="/privacy" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
             プライバシーポリシー
+          </Link>
+          <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
+          <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
+            アプリを開く →
           </Link>
         </div>
       </footer>
