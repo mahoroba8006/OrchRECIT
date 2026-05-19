@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 
 const TALLY_FORM_ID = '449DEk';
 const TALLY_EMBED_URL = `https://tally.so/embed/${TALLY_FORM_ID}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`;
-const IS_READY = TALLY_FORM_ID !== 'PLACEHOLDER';
 
 function SproutLogo({ size = 20 }: { size?: number }) {
   return (
@@ -87,35 +86,16 @@ export default function ContactPage() {
           boxShadow: 'var(--shadow-card)',
           minHeight: 480,
         }}>
-          {IS_READY ? (
-            <>
-              <iframe
-                data-tally-src={TALLY_EMBED_URL}
-                loading="lazy"
-                width="100%"
-                height="480"
-                frameBorder={0}
-                title="Orch.RECIT お問い合わせフォーム"
-                style={{ display: 'block', border: 0 }}
-              />
-              <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
-            </>
-          ) : (
-            <div style={{
-              padding: '64px 24px',
-              textAlign: 'center',
-              color: 'var(--ink-mute)',
-              fontSize: 14,
-              lineHeight: 1.8,
-            }}>
-              <p style={{ margin: 0, fontWeight: 600, color: 'var(--ink-soft)' }}>
-                フォームを準備中です。
-              </p>
-              <p style={{ margin: '8px 0 0' }}>
-                公開までしばらくお待ちください。
-              </p>
-            </div>
-          )}
+          <iframe
+            data-tally-src={TALLY_EMBED_URL}
+            loading="lazy"
+            width="100%"
+            height="480"
+            frameBorder={0}
+            title="Orch.RECIT お問い合わせフォーム"
+            style={{ display: 'block', border: 0 }}
+          />
+          <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
         </div>
 
       </main>
