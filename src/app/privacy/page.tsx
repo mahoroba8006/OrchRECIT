@@ -13,7 +13,7 @@ function SproutLogo({ size = 20 }: { size?: number }) {
   );
 }
 
-const UPDATED_AT = '2026年5月4日';
+const UPDATED_AT = '2026年5月19日';
 
 const sections = [
   {
@@ -137,7 +137,7 @@ const sections = [
     content: (
       <>
         <p>本プライバシーポリシーに関するご質問・ご意見は、以下までお問い合わせください。</p>
-        <p><strong>Email：</strong>kaz.matsumoto0908@gmail.com</p>
+        <p><strong>Email：</strong>support@orch-app.com</p>
       </>
     ),
   },
