@@ -695,3 +695,137 @@
 - カスタムドメイン取得 → Cloudflare Email Routing で `support@orchrecit.com` 切替 → プライバシーポリシー・LP メアド置換
 - ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
 - 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-19 セッション
+
+### 議論内容（実装着手前・取得経路の戦略相談）
+
+#### 1. カスタムドメイン取得方針の検討
+- ユーザー構想:
+  - ドメイン `orchapp.site` を取得し、Cloudflare 上の複数アプリ・LP をこのドメインで管理
+  - 領収書アプリは `recit.orchapp.site` で運用
+  - 個人 Gmail を表に出さず、独自ドメインで問い合わせを受け付ける
+  - 取得元は当初ムームードメインを想定
+
+#### 2. ムームードメインの制約・デメリット分析
+- 致命的な欠点はなしと評価。ただし `.site` の**更新料が約4,400円/年**で5年運用なら `.com` の2倍以上
+- Cloudflare Email Routing は**受信転送のみで送信不可**（送信したいなら別途 Resend/SendGrid/Workspace が必要）
+- 取得直後に Cloudflare へ NS 移譲し、60日経過後に Cloudflare Registrar へ移管する2段構えを提案
+
+#### 3. ムームー以外のシンプルな経路の提示
+| 方法 | 手数 |
+|------|------|
+| Cloudflare Registrar で直接取得（取扱TLDなら）| 最短・1社完結 |
+| Porkbun で取得 → Cloudflare へ NS 移譲 | 中継1回 |
+| ムームー → Cloudflare 移譲 | 中継2社（今回はパス）|
+
+- **Cloudflare Registrar は近年新規取得にも対応**（取扱 TLD は限定的）
+- 取扱外なら Porkbun が次点（Whois 代行無料・永久、Cloudflare 相性良、英語UI）
+
+#### 4. TLD コスト比較（5年運用総額）
+| TLD | 初年度 | 更新料/年 | 5年総額 | ブランド |
+|-----|--------|----------|---------|---------|
+| `.com` | 約1,400円 | 約1,800円 | 約8,600円 | ◎ 最強 |
+| `.xyz` | 約100円 | 約2,200円 | 約8,900円 | △ 新興 |
+| `.site` | 約100円 | 約4,400円 | 約17,700円 | △ 弱め |
+
+- 「初年度安い」TLD は更新料で回収する設計 → 長期保有なら `.com` が結果的に最安
+- `orchapp.com` の空き確認が分岐点（空きなら `.com` 一択）
+
+#### 5. 問い合わせフォーム方針確定
+- 個人 Gmail 露出を避けるため、メール返信ではなく**問い合わせフォーム経由**で運用する方針に確定
+- 実装候補（別タイミングで詰める）:
+  - Tally 埋め込み（10分・無料・体裁良）
+  - Google Forms 埋め込み（5分・無料・UI 控えめ）
+  - Next.js Server Action + Resend で自前実装（1〜2時間・柔軟）
+
+### 決定事項
+- **取得経路: Cloudflare Registrar を第一候補に確定**（取扱があれば直接取得・取扱外なら Porkbun フォールバック）
+- **TLD は `orchapp.com` の空き確認結果で決定**（空きなら `.com`、取られていれば `.xyz` か名前再検討）
+- **問い合わせ受付はフォーム経由**で確定（メール双方向は採用しない）
+- ムームードメインは採用しない
+
+### 次のアクション
+- Cloudflare ダッシュボードの `Domain Registration` で `orchapp.com` の空き確認 → 取扱・空きがあればその場で取得
+- 取得後、`recit.orchapp.com`（or `.xyz`）を Cloudflare Pages の本アプリに割当
+- Cloudflare Email Routing で `support@<取得ドメイン>` → 個人 Gmail 転送設定（受信のみ）
+- LP に問い合わせフォーム（Tally 等）を埋め込み、フッターのメアドをフォームリンクに置換
+- プライバシーポリシーの連絡先記載もフォームリンクに変更
+
+### 未完了タスク（既存継続）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: 取得ドメインへ移行予定）
+- ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-19 セッション②
+
+### 作業内容
+
+#### 1. 独自ドメイン取得（Cloudflare Registrar）
+- `orchapp.com` は空きなしのため `orch-app.com`（ハイフン入り）を取得
+- ハイフンのトレードオフ（音声伝達弱・タイポ流出リスク）を共有して合意
+- 取得設定: 自動更新 ON / WHOIS Privacy 強制ON（Cloudflare Registrar の仕様で永久・選択肢なし）
+- 有効期限: 2027-05-19、年額 約$10.44（原価販売）
+
+#### 2. Cloudflare Pages にカスタムドメイン追加
+- Workers & Pages → `orchrecit` プロジェクト → Custom domains → `recit.orch-app.com` を追加
+- DNS（CNAME）+ SSL 証明書（Let's Encrypt）が自動セットアップ → Active 確認
+- 旧 `orchrecit.pages.dev` は並行運用維持
+
+#### 3. Google OAuth Redirect URI 追加
+- Google Cloud Console → OAuth 2.0 クライアント ID
+- JS origin に `https://recit.orch-app.com` 追加
+- Redirect URI に `https://recit.orch-app.com/api/auth/callback/google` 追加
+- 既存の pages.dev 系・localhost 系は削除せず維持（並行運用）
+
+#### 4. NEXTAUTH_URL 更新 + 再デプロイ
+- Cloudflare Pages → Variables and Secrets → Production
+- `NEXTAUTH_URL`: `https://orchrecit.pages.dev` → `https://recit.orch-app.com`
+- Retry deployment 1回目: `Failed to publish your Function. Got error: Unknown internal error occurred.`（CF 側の一時的インフラ障害・ビルドとアセットアップロードは成功、最終 Function 配信のみ失敗）
+- 2回目のリトライで正常デプロイ成功
+
+#### 5. 新ドメインでの OAuth ログインフロー実機確認
+- WebFetch で `/` LP 表示・`/dashboard` 認証画面表示をサーバ側応答で確認
+- ユーザー実機で OAuth 認証 → /dashboard リダイレクト → セッション成立 → 明細表示まで全て動作確認
+
+#### 6. Cloudflare Email Routing 設定
+- Email Routing 有効化 → MX × 3 + SPF レコード自動追加
+- **宛先アドレス**: `appyamamatsu1@gmail.com`（個人 Gmail とは別に新規 Gmail を運用用として作成。kaz.matsumoto0908 ではない判断）→ Verified
+- **ルーティング ルール**: `support@orch-app.com` → `appyamamatsu1@gmail.com`（有効）
+- **キャッチオール**: 同じ宛先で有効化（`<なんでも>@orch-app.com` を網羅）
+- テストメール（個人 Gmail → support@）受信成功確認
+
+#### 7. プライバシーポリシーの連絡先メアド置換
+- `src/app/privacy/page.tsx:140`: `kaz.matsumoto0908@gmail.com` → `support@orch-app.com`
+- `UPDATED_AT`: `2026年5月4日` → `2026年5月19日`
+- コミット `afcfa65` で push → Cloudflare Pages 自動デプロイ
+
+### 決定事項
+- **独自ドメイン**: `orch-app.com`（ハイフン入り）で確定
+- **アプリ本番 URL**: `https://recit.orch-app.com`（旧 `pages.dev` は当面併存維持）
+- **問い合わせ受信先**: `appyamamatsu1@gmail.com`（個人 Gmail とは別に運用用 Gmail を新規開設）
+- **プライバシーポリシー連絡先**: `support@orch-app.com`（個人 Gmail 露出を完全解消）
+- **Email Routing は受信のみ**（送信不可）→ 返信が必要な運用は問い合わせフォーム経由を堅持
+
+### 過程で得た学び
+- **Cloudflare Registrar の WHOIS Privacy は強制・永久 ON**（ユーザーが選択する余地すらない・業界差別化ポイント）
+- **Cloudflare Email Routing の Destination Address はアカウント単位で共有**（同アカウント内で過去に検証済みなら即 Verified 表示）
+- `Failed to publish your Function. Got error: Unknown internal error occurred.` は CF 側の一時障害でリトライで解消（ビルド成功・アセット成功なのに最終 Function 配信だけ失敗するパターン）
+- **NEXTAUTH_URL は単一値**しか持てず、新旧ドメイン併用は技術的に不可能（環境変数値変更で完全切替が必須）
+- **新規ドメインからのメールは Gmail 迷惑メール判定に高確率で引っかかる**（ドメインレピュテーション蓄積に数週間〜数ヶ月かかる）
+- ハイフン入りドメインは音声伝達が弱く、タイポ流出リスク（誰かが `orchapp.com` を取得すると流出）が長期で残る
+
+### コミット履歴（本日）
+- `afcfa65` docs: プライバシーポリシーの連絡先を独自ドメイン support@ に切替
+
+### 未完了タスク（既存継続）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL を **`https://recit.orch-app.com/privacy`** に切替て申請）
+- 問い合わせフォーム実装（Tally / Google Forms / Resend自前 の選定 → LP・プライバシーポリシーのメアド表示をフォームリンクへ置換）
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用・任意改善）
+- 旧 `orchrecit.pages.dev` の切り離し判断（当面は並行運用維持）
+- ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
