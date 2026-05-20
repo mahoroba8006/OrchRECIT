@@ -48,7 +48,7 @@ function FadeIn({ children, delay = 0, style }: {
 /* ── データ定義 ── */
 const pains = [
   { icon: <PenLine size={24} strokeWidth={1.5} />, text: '溜まっていくレシート。内容を一つ一つ見ながら手作業で記録、その手間が惜しい。' },
-  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目も費用按分も、毎回調べ直し。これでいいのかいつも不安になる。' },
+  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目も費用按分も、いつも調べ直し。これでいいのか毎回不安になる。' },
   { icon: <BarChart3 size={24} strokeWidth={1.5} />, text: '「今期の経費、何にいくら使ったか」サッと知りたいのに集計ができていない。' },
 ];
 
