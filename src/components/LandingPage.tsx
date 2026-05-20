@@ -47,46 +47,16 @@ function FadeIn({ children, delay = 0, style }: {
 
 /* ── データ定義 ── */
 const pains = [
-  { icon: <PenLine size={24} strokeWidth={1.5} />, text: '溜まってしまったレシートを見て手で打ち込む、その作業がそもそも面倒。' },
-  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目も費用按分も、毎回調べ直して毎回不安になる。' },
+  { icon: <PenLine size={24} strokeWidth={1.5} />, text: '溜まっていくレシート。内容を一つ一つ見ながら手作業で記録、その手間が惜しい。' },
+  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目も費用按分も、毎回調べ直し。これでいいのかいつも不安になる。' },
   { icon: <BarChart3 size={24} strokeWidth={1.5} />, text: '「今期の経費、何にいくら使ったか」サッと知りたいのに集計ができていない。' },
 ];
 
 const features = [
   {
-    icon: <Camera size={22} />, color: '#72D07C', bg: '#e3f4e5',
-    title: 'カメラ撮影 → 自動読取',
-    desc: 'スマホで撮るだけ。OCRで必要な情報を自動入力して、画像も保存します。',
-  },
-  {
     icon: <Sparkles size={22} />, color: '#1794D7', bg: '#d9edf8',
-    title: '農業専用 AI 科目判定',
-    desc: '農業の青色申告決算書に準拠した勘定科目を Gemini AI が自動で判定します。',
-  },
-  {
-    icon: <BookOpen size={22} />, color: '#2faa55', bg: '#dff2e4',
-    title: 'ワンポイントアドバイス',
-    desc: '「なぜその科目か」判定理由と注意点を毎回解説。使うほど知識が身につきます。',
-  },
-  {
-    icon: <SlidersHorizontal size={22} />, color: '#d98e2b', bg: '#fbecd2',
-    title: 'カスタムルール登録',
-    desc: '税務署管内の特有処理やご自身の判断基準を AI に直接指示して精度を高めます。',
-  },
-  {
-    icon: <HardDrive size={22} />, color: '#72D07C', bg: '#e3f4e5',
-    title: 'データは Google Drive のみ',
-    desc: '原本画像も台帳データも、すべてあなたの Google アカウント内に保存されます。',
-  },
-  {
-    icon: <FileSpreadsheet size={22} />, color: '#1794D7', bg: '#d9edf8',
-    title: 'スプレッドシート連携',
-    desc: '取込データは Google スプレッドシートに自動記録。いつでも確認・編集可能です。',
-  },
-  {
-    icon: <CheckCheck size={22} />, color: '#2faa55', bg: '#dff2e4',
-    title: '重複チェック・確認タグ',
-    desc: '二重取込を自動検知。固定資産候補・按分確認が必要なレシートには自動でタグ付与。',
+    title: '農業専用 AI ＋ あなた専用ルール',
+    desc: '青色申告決算書に準拠した農業科目を Gemini AI が自動判定。さらに地域特有の処理やご自身の判断基準を AI に直接指示でき、あなた専用の科目判定ができます。',
   },
   {
     icon: <ListChecks size={22} />, color: '#72D07C', bg: '#e3f4e5',
@@ -94,9 +64,24 @@ const features = [
     desc: '1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目が判定されます。',
   },
   {
-    icon: <PieChart size={22} />, color: '#1794D7', bg: '#d9edf8',
+    icon: <PieChart size={22} />, color: '#2faa55', bg: '#dff2e4',
     title: '経費ダイジェストで全体像をひと目',
     desc: '経費の総額、月別の推移と科目別の内訳を、棒グラフと円グラフで自動集計。今期いくら何に使ったかを簡単に把握できます。',
+  },
+  {
+    icon: <HardDrive size={22} />, color: '#d98e2b', bg: '#fbecd2',
+    title: 'データは、あなたの Google Drive だけ',
+    desc: '原本画像も台帳データも、すべてあなた自身の Google アカウント内に保存。外部サーバーへの蓄積は行いません。',
+  },
+  {
+    icon: <Camera size={22} />, color: '#1794D7', bg: '#d9edf8',
+    title: '撮るだけで、Sheets に記録完了',
+    desc: 'スマホで撮るだけ。OCR が購入日・支払先・金額を読み取り、原本画像と一緒に Google スプレッドシートへ自動記録。いつでも確認・編集できます。',
+  },
+  {
+    icon: <BookOpen size={22} />, color: '#72D07C', bg: '#e3f4e5',
+    title: '迷いとうっかりを、AI がサポート',
+    desc: '「なぜその科目か」判定理由と注意点を毎回解説。同じレシートの二重取込は事前に警告し、按分や固定資産候補には自動でタグを付けて、後からの確認をラクにします。',
   },
 ];
 
