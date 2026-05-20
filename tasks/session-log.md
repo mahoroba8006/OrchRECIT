@@ -829,3 +829,88 @@
 - 旧 `orchrecit.pages.dev` の切り離し判断（当面は並行運用維持）
 - ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
 - 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-19 セッション③
+
+### 作業内容
+
+#### 1. 問い合わせフォーム実装（Tally + /contact ページ新設）
+- **方針確定**: Tally（10分・無料・体裁OK・スパム対策内蔵）を採用、Google Forms（ブランド剥き出し）と Resend 自前（過剰投資）は却下
+- **設置形態**: `/contact` ページ新設 + Tally iframe 埋め込み（外部リンク・モーダルは却下、自社ドメイン内完結でブランド統一）
+- **フォーム項目5点**: 名前（任意）/ メール（必須）/ 種別（必須・プルダウン: 一般/不具合/機能要望/取材/その他）/ お問い合わせ内容（必須）/ プライバシーポリシー同意（必須）
+- **Tally Form ID**: `449DEk`（Share Link: `https://tally.so/r/449DEk`）
+- **通知先**: `appyamamatsu1@gmail.com`（運用専用 Gmail）
+
+#### 2. コード実装（3ファイル）
+- `src/app/contact/page.tsx` 新規作成（Server Component・privacy ページのヘッダー/フッター/デザイントークン踏襲・Tally embed.js を `next/script lazyOnload` で読込）
+- `src/components/LandingPage.tsx` フッター: 「お問い合わせ | プライバシーポリシー | アプリを開く →」の3リンク構成に変更
+- `src/app/privacy/page.tsx`:
+  - §4「第三者サービス」に Tally Forms（株式会社 Tally）を追加（フォーム送信時の中継挙動を明記・Tally プライバシーポリシーへのリンク）
+  - §7「お問い合わせ」: `support@orch-app.com` メアド記載 → `/contact` フォーム導線に変更（個人ドメイン Gmail露出も完全解消）
+  - フッターに「お問い合わせ」リンクを追加
+
+#### 3. CF Pages ビルドエラー（const literal narrowing）の即時修正
+**症状**: 初回 push 後、CF ビルドが TypeScript エラーで失敗
+```
+Type error: This comparison appears to be unintentional because the types '"449DEk"' and '"PLACEHOLDER"' have no overlap.
+```
+
+**原因**: `const TALLY_FORM_ID = '449DEk';` がリテラル型に narrowing され、プレースホルダー検出ロジック `!== 'PLACEHOLDER'` が型エラーに。ローカル `npm run build` の初回は通っていたが、ID を実値に差し替えた後の build を回さずに push した判断ミス。
+
+**対応**:
+- 不要になった IS_READY 分岐とプレースホルダー UI を削除（CLAUDE.md「起こり得ないシナリオへのフォールバックを書かない」原則）
+- ローカル `npm run build` で通過確認 → 再push
+- `tasks/lessons.md` §8 に教訓追記（const literal narrowing・値差し替え後の必須再ビルド）
+
+#### 4. LP Features に8枚目のカードを追加
+- ユーザー要望: 「混在レシート（農業経費とそれ以外・複数科目混在）でも明細単位で取込・科目判定できる」差別化機能の説明
+- 配置: Features セクション末尾（#8）。色循環を崩さず、機能リストの網羅性を保つ
+- icon: `ListChecks`（明細単位の取捨選択を象徴）/ color: `#72D07C`（緑、循環の次色）
+- title: 「明細ごとに、取込と科目を判定」
+- desc: 「1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目が判定されます。」
+- スコープ準拠チェック済み（補助ツール領域内）
+
+#### 5. プライバシーポリシー下部に LP 要素混入の症状調査・修正
+**症状**: ユーザーが `/privacy` を一番下までスクロールすると、フッターの下に LP の Product Tour スマホモック（「一年の経費を、グラフで一望」）が表示される。
+
+**切り分け手順**:
+- WebFetch で本番サーバーの `/privacy` HTML を取得 → LP 関連の文字列は**含まれていない**ことを確認（サーバー側は正常）
+- クライアント側のキャッシュ汚染と判定
+- ユーザーがハードリフレッシュ等で解消を確認
+
+**根本原因**: `@ducanh2912/next-pwa` の workbox 設定で `clientsClaim` と `cleanupOutdatedCaches` がデフォルト false。デプロイ後の SW 更新で「新 SW インストール済み・古い SW がタブ制御」のハイブリッド状態が長期化し、古いキャッシュの断片が混入。
+
+**対応**:
+- `next.config.ts` の workboxOptions に3点を明示有効化:
+  - `skipWaiting: true`（デフォルト true だが明示）
+  - `clientsClaim: true`
+  - `cleanupOutdatedCaches: true`
+- `tasks/lessons.md` §9 に教訓追記（PWA SW デフォルトの落とし穴・「ユーザーに DevTools を開かせる対応は不可能」という制約・診断シグナル）
+
+### コミット履歴（本日セッション③）
+- `918ed9b` feat: 問い合わせフォーム /contact を Tally 埋め込みで実装
+- `9773d0a` docs: 問い合わせフォーム実装プランと前回セッションログを反映
+- `8de4270` fix: contact ページの不要なプレースホルダー分岐を削除（型エラー解消）
+- `12da209` docs: lessons.md §8 に const リテラル narrowing の教訓を追記
+- `80465a9` feat: LP Features に「明細ごとに、取込と科目を判定」カードを追加
+- `b45aa20` fix: SW キャッシュ汚染を防ぐため workbox 設定を3点強化
+
+### 決定事項
+- **問い合わせフォーム**: Tally Forms（Form ID: 449DEk）+ `/contact` 埋め込み運用で確定
+- **通知先**: `appyamamatsu1@gmail.com`（運用専用 Gmail）
+- **プライバシーポリシー連絡先表記**: `/contact` フォーム導線のみ（メアド直接記載は完全廃止）
+- **SW キャッシュ戦略**: workbox に `skipWaiting / clientsClaim / cleanupOutdatedCaches` の3点セットを明示有効化することを標準化（lessons.md §9）
+
+### 過程で得た学び（教訓ファイル化済み）
+- **lessons.md §8**: const リテラル narrowing の落とし穴。プレースホルダー検出ロジックは ID 確定時点で分岐ごと削除する。値差し替え後は必ず `npm run build` を再実行する（ローカル dev では検出されない型エラー）
+- **lessons.md §9**: PWA SW のデフォルト設定は本番更新頻度の高いプロジェクトには緩すぎる。「ユーザーに DevTools を開かせる対応は不可能」なので、SW 戦略は設定で予防する
+- **症状切り分け**: 「別ページ要素の混入」は、まず WebFetch で本番 HTML を確認 → サーバー側に該当要素がなければクライアント側起因と確定
+
+### 未完了タスク（既存継続）
+- Google OAuth アプリ審査申請（プライバシーポリシー URL: `https://recit.orch-app.com/privacy` で申請）
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用・任意改善）
+- 旧 `orchrecit.pages.dev` の切り離し判断
+- ブラウザ実機確認（LP Hero/Final CTA表示・ライトボックス拡大挙動・モバイル375px・OGP プレビュー）
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
