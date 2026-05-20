@@ -6,8 +6,8 @@ import { useEffect, useRef, useState, ReactNode } from 'react';
 import {
   Camera, Sparkles, HardDrive, FileSpreadsheet,
   BookOpen, SlidersHorizontal, ShieldCheck,
-  ArrowRight, CheckCheck, AlertCircle, PenLine, Search,
-  ZoomIn, ZoomOut, X, ListChecks,
+  ArrowRight, CheckCheck, AlertCircle, PenLine,
+  ZoomIn, ZoomOut, X, ListChecks, BarChart3, PieChart,
 } from 'lucide-react';
 
 /* ── Intersection Observer で scroll-triggered fade-in ── */
@@ -47,9 +47,9 @@ function FadeIn({ children, delay = 0, style }: {
 
 /* ── データ定義 ── */
 const pains = [
-  { icon: <PenLine size={24} strokeWidth={1.5} />, text: 'レシートから手作業で記帳する作業が面倒' },
-  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目が正しいか、毎回確認している、いつも不安になる' },
-  { icon: <Search size={24} strokeWidth={1.5} />, text: '記帳した元のレシートを探すのに時間がかかる' },
+  { icon: <PenLine size={24} strokeWidth={1.5} />, text: '溜まってしまったレシートを見て手で打ち込む、その作業がそもそも面倒。' },
+  { icon: <AlertCircle size={24} strokeWidth={1.5} />, text: '勘定科目も費用按分も、毎回調べ直して毎回不安になる。' },
+  { icon: <BarChart3 size={24} strokeWidth={1.5} />, text: '「今期の経費、何にいくら使ったか」サッと知りたいのに集計ができていない。' },
 ];
 
 const features = [
@@ -92,6 +92,11 @@ const features = [
     icon: <ListChecks size={22} />, color: '#72D07C', bg: '#e3f4e5',
     title: '明細ごとに、取込と科目を判定',
     desc: '1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目が判定されます。',
+  },
+  {
+    icon: <PieChart size={22} />, color: '#1794D7', bg: '#d9edf8',
+    title: '経費ダイジェストで全体像をひと目',
+    desc: '経費の総額、月別の推移と科目別の内訳を、棒グラフと円グラフで自動集計。今期いくら何に使ったかを簡単に把握できます。',
   },
 ];
 
@@ -253,7 +258,7 @@ export default function LandingPage() {
             animation: 'slideUp .5s ease both',
           }}>
             <SproutLogo size={16} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.04em' }}>農業経費 AI 領収書アプリ</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.04em' }}>農業経費 管理アプリ</span>
           </div>
 
           {/* ヘッドライン */}
@@ -728,6 +733,17 @@ export default function LandingPage() {
               </FadeIn>
             ))}
           </div>
+
+          {/* 免責事項（控えめ表示） */}
+          <FadeIn delay={0.5}>
+            <p style={{
+              maxWidth: 720, margin: '52px auto 0',
+              fontSize: 12.5, color: 'var(--ink-mute)',
+              lineHeight: 1.75, textAlign: 'center',
+            }}>
+              ※ 本アプリの AI が提示する勘定科目・按分の目安・コメントは、あくまで参考情報です。確定申告に用いる最終的な記帳内容は、ご自身の判断・確認のうえご決定ください。
+            </p>
+          </FadeIn>
         </div>
       </section>
 
@@ -832,7 +848,7 @@ export default function LandingPage() {
           <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)' }}>Orch.RECIT</span>
         </div>
         <p style={{ fontSize: 12, color: 'var(--ink-mute)', margin: '0 0 10px' }}>
-          農業経費 AI 領収書アプリ
+          農業経費 管理アプリ
         </p>
         <div style={{ display: 'flex', gap: 18, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
           <Link href="/contact" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
