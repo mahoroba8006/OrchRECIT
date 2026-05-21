@@ -20,6 +20,8 @@ interface Props {
 
 export default function AppShell({ session }: Props) {
   const [view, setView] = useState<View>('home');
+  const [isWebView, setIsWebView] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleSetView = useCallback((v: View) => {
     setView(v);
@@ -30,6 +32,14 @@ export default function AppShell({ session }: Props) {
     window.addEventListener('navigateAbout', handleNavAbout);
     return () => window.removeEventListener('navigateAbout', handleNavAbout);
   }, [handleSetView]);
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    setIsWebView(
+      /FBAN|FBAV|Instagram|Twitter\/|Line\/|GSA\//.test(ua) ||
+      (/Android/.test(ua) && /wv\)/.test(ua))
+    );
+  }, []);
 
   const isLoggedIn = !!session;
   const isDriveError = session?.error === "RefreshAccessTokenError";
@@ -75,9 +85,54 @@ export default function AppShell({ session }: Props) {
                 Google Drive への画像保存やスプレッドシートへの記録のため、<br />
                 Google アカウントでのログインをお願いします。
               </p>
+
+              {isWebView && (
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #f59e0b',
+                  borderRadius: 10,
+                  padding: '14px 18px',
+                  marginBottom: 24,
+                  textAlign: 'left',
+                }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#78350f', marginBottom: 6 }}>
+                    ⚠ アプリ内ブラウザではログインできません
+                  </p>
+                  <p style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.65, marginBottom: 12 }}>
+                    LINE・Gmail・Instagram などのアプリ内から開くと、Google のポリシーによりログインが拒否されます。
+                    URL をコピーして Chrome・Safari などで開き直してください。
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2500);
+                      });
+                    }}
+                    style={{
+                      padding: '7px 16px',
+                      background: copied ? '#10b981' : '#f59e0b',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'background .2s',
+                    }}
+                  >
+                    {copied ? 'コピーしました ✓' : 'URLをコピーする'}
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <SignInButton isSignIn={true} />
               </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 16 }}>
+                Chrome・Safari・Firefox などの標準ブラウザでご利用ください
+              </p>
             </div>
           </div>
         ) : isDriveError ? (
