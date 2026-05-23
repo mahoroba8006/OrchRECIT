@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 interface WorkspaceData {
   spreadsheetUrl: string;
   folderUrl: string;
+}
+
+interface Props {
+  workspace: WorkspaceData | null;
 }
 
 const ITEMS = [
@@ -33,15 +35,8 @@ const ITEMS = [
   },
 ];
 
-export default function WorkspaceLinks() {
-  const [data, setData] = useState<WorkspaceData | null>(null);
-
-  useEffect(() => {
-    fetch('/api/workspace')
-      .then(r => r.json())
-      .then(j => { if (j.success) setData({ spreadsheetUrl: j.spreadsheetUrl, folderUrl: j.folderUrl }); })
-      .catch(() => {});
-  }, []);
+export default function WorkspaceLinks({ workspace }: Props) {
+  const data = workspace;
 
   if (!data) return null;
 

@@ -171,7 +171,11 @@ function MonthlyBarChart({ monthlyData, stats }: { monthlyData: MonthlyData; sta
 }
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
-export default function MonthSummary() {
+interface Props {
+  workspaceReady?: boolean;
+}
+
+export default function MonthSummary({ workspaceReady = false }: Props) {
   const allRowsRef = useRef<Row[]>([]);
   const selectedYearRef = useRef<number>(currentYear());
   const outlierThresholdRef = useRef<number | null>(null);
@@ -270,11 +274,13 @@ export default function MonthSummary() {
   }, [aggregate]);
 
   useEffect(() => {
+    // ワークスペースの初期化が完了するまでフェッチしない（競合作成を防ぐ）
+    if (!workspaceReady) return;
     fetchAndAggregate();
     const handle = () => fetchAndAggregate();
     window.addEventListener('receiptUploaded', handle);
     return () => window.removeEventListener('receiptUploaded', handle);
-  }, [fetchAndAggregate]);
+  }, [fetchAndAggregate, workspaceReady]);
 
   const isEmpty = stats.length === 0;
   const emptyMsg = isLoading ? '集計中...' : `${selectedYear}年のデータがありません`;

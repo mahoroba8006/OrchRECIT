@@ -14,6 +14,11 @@ import SignInButton from '@/components/SignInButton';
 
 type View = 'home' | 'history' | 'about';
 
+interface WorkspaceLinks {
+  spreadsheetUrl: string;
+  folderUrl: string;
+}
+
 interface Props {
   session: Session | null;
 }
@@ -22,6 +27,8 @@ export default function AppShell({ session }: Props) {
   const [view, setView] = useState<View>('home');
   const [isWebView, setIsWebView] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [workspace, setWorkspace] = useState<WorkspaceLinks | null>(null);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
 
   const handleSetView = useCallback((v: View) => {
     setView(v);
@@ -44,6 +51,18 @@ export default function AppShell({ session }: Props) {
   const isLoggedIn = !!session;
   const isDriveError = session?.error === "RefreshAccessTokenError";
   const userName = session?.user?.name ?? null;
+
+  // ワークスペース初期化を一元管理（WorkspaceLinks・MonthSummary の競合作成を防ぐ）
+  useEffect(() => {
+    if (!isLoggedIn || isDriveError) return;
+    fetch('/api/workspace')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setWorkspace({ spreadsheetUrl: j.spreadsheetUrl, folderUrl: j.folderUrl });
+      })
+      .catch(() => {})
+      .finally(() => setWorkspaceReady(true));
+  }, [isLoggedIn, isDriveError]);
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
@@ -198,8 +217,8 @@ export default function AppShell({ session }: Props) {
           /* ── ホーム ── */
           <div style={{ maxWidth: 720, margin: '0 auto', padding: '8px 20px 80px' }}>
             <Uploader onNavigateHistory={() => handleSetView('history')} />
-            <WorkspaceLinks />
-            <MonthSummary />
+            <WorkspaceLinks workspace={workspace} />
+            <MonthSummary workspaceReady={workspaceReady} />
           </div>
         ) : view === 'history' ? (
           /* ── 履歴 ── */

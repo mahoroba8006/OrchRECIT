@@ -151,10 +151,26 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
   }
 
   // 2. Spreadsheet '経費記録'
+  // orderBy=createdTime で最古ファイルを先頭に取得し、競合作成による重複を検出する
   const query = `'${rootFolderId}' in parents and name = '経費記録' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
-  const sheetListUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&spaces=drive`;
+  const sheetListUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&orderBy=createdTime&spaces=drive`;
   const resFiles = await fetchGoogleAPI(sheetListUrl, accessToken);
-  let spreadsheetId = resFiles.files && resFiles.files.length > 0 ? resFiles.files[0].id : null;
+  const allSheets: { id: string }[] = resFiles.files || [];
+
+  // 重複ファイルをゴミ箱へ（最古のファイルのみ残す）
+  if (allSheets.length > 1) {
+    await Promise.all(
+      allSheets.slice(1).map(f =>
+        fetchGoogleAPI(`https://www.googleapis.com/drive/v3/files/${f.id}`, accessToken, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trashed: true }),
+        }).catch(() => {})
+      )
+    );
+  }
+
+  let spreadsheetId = allSheets.length > 0 ? allSheets[0].id : null;
 
   if (!spreadsheetId) {
     // Drive API はユーザーのデフォルト設定に従い複数シートを生成するため、
@@ -194,6 +210,7 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
     });
   }
 
+  if (!spreadsheetId) throw new Error('スプレッドシートの作成または取得に失敗しました');
   await migrateColumnsIfNeeded(accessToken, spreadsheetId);
 
   // 3. Receipts folder '領収書'
