@@ -274,3 +274,38 @@ workboxOptions: {
 - ハードリフレッシュ・シークレットウィンドウで解消する
 - DevTools → Application → Service Workers にアクティブな SW がある
 - WebFetch でサーバー HTML を取得すると問題の要素が含まれていない（クライアント側起因の確定）
+
+---
+
+## §10: Google Drive API の結果整合性によるレースコンディション（2026-05-24）
+
+### 🚨 症状
+初回ログイン時、Google Drive の Orch.RECIT フォルダに「経費記録」スプレッドシートが複数（2〜3個）作成される。
+
+### 🔍 根本原因
+`setupUserWorkspace` が複数の API ルート（`/api/workspace`・`/api/history`）から**同時並行**で呼び出される構造になっていた。Google Drive API は**結果整合性（eventual consistency）** を持つため、ファイル作成直後は検索結果に反映されない。そのため、並行リクエストがそれぞれ「ファイルなし」と判定し、それぞれスプレッドシートを新規作成してしまう。
+
+```
+AppShell (home view) マウント
+  ├── WorkspaceLinks.useEffect → /api/workspace → setupUserWorkspace → 「なし」→ 作成#1
+  └── MonthSummary.useEffect  → /api/history   → setupUserWorkspace → 「なし」→ 作成#2
+```
+
+### ✅ 対策（2層）
+
+**① サーバー側: setupUserWorkspace に重複排除ロジックを追加**
+- Drive 検索に `orderBy=createdTime` を付与（最古ファイルを先頭に取得）
+- 複数ファイルが存在する場合、先頭以外をすべてゴミ箱に移動する
+- これにより既存の重複ファイルも次回呼び出し時に自動修復される
+
+**② クライアント側: ワークスペース初期化を AppShell に一元化**
+- AppShell の `useEffect` でログイン時に `/api/workspace` を1回だけ呼び出す
+- 結果を `workspace` state / `workspaceReady` フラグとして管理
+- `WorkspaceLinks`: 独自 fetch を廃止し、AppShell の props を使用
+- `MonthSummary`: `workspaceReady=true` になるまで `/api/history` 呼び出しを遅延
+
+### 🎯 教訓
+- **Drive API の eventual consistency を信頼してはならない**: 作成直後の検索は「なし」を返すことがある。`trashed = false` の検索クエリは効くが、作成直後のファイルはインデックスに乗っていない可能性がある。
+- **setupUserWorkspace を全 API ルートで毎回呼ぶのはアンチパターン**: 初期化処理はクライアントの1箇所に集約し、完了を待ってから依存する処理を開始すること。
+- **既存重複の修復**: `orderBy=createdTime` + `slice(1).trash()` のパターンで自己修復できる。
+- **ゴミ箱移動後に SPA の state は更新されない**: React state はページリフレッシュするまでキャッシュされる。ゴミ箱移動後に旧 URL のリンクが残るのは仕様。リフレッシュで解消する。

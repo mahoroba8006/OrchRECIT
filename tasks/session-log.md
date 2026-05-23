@@ -1096,3 +1096,46 @@ Type error: This comparison appears to be unintentional because the types '"449D
 - LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用・任意改善）
 - 旧 `orchrecit.pages.dev` の切り離し判断
 - 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断・Phase 1着手判断）
+
+---
+
+## 2026-05-24 セッション
+
+### 作業内容
+
+#### 1. Google OAuth アプリ審査申請 手順ガイドの作成
+- 審査申請の全体フロー・必要素材・スコープ説明テンプレート（英文）・提出後の流れを詳細に説明
+- 最大の準備作業は「スコープ使用説明の動画（YouTube 限定公開）」
+
+#### 2. スプレッドシートが3枚作成される不具合の修正
+
+**誤診 → 正診のプロセス**
+- 最初に「3枚のシートタブ」（Drive API のデフォルトシート数問題）と誤診
+  - 対応: Drive API → Sheets API に切替（commit `8aeaa28`）
+  - ユーザーから「3ファイル作成されていた」と指摘を受け、誤診と判明
+- 正診: Google Drive API の結果整合性によるレースコンディション
+  - `WorkspaceLinks` と `MonthSummary` が同時に `setupUserWorkspace` を呼び出し、両方が「ファイルなし」と判定して各自作成
+
+**修正内容（commit `eff9b6f`）**
+- `google.ts`: 重複排除ロジック追加（orderBy=createdTime + 重複をゴミ箱移動）
+- `AppShell.tsx`: `/api/workspace` を一元呼び出し（workspaceReady フラグ管理）
+- `WorkspaceLinks.tsx`: 独自 fetch を廃止、AppShell props を使用
+- `MonthSummary.tsx`: `workspaceReady=true` まで `/api/history` 呼び出しを遅延
+
+**動作確認**
+- 旧ファイルをゴミ箱移動 → ページリフレッシュ → 「経費記録」が1ファイルのみ新規作成されることを確認
+
+### コミット履歴（本日）
+- `8aeaa28` fix: スプレッドシート新規作成時に Drive API → Sheets API に切替
+- `eff9b6f` fix: 経費記録ファイルが複数作成されるレースコンディションを修正
+
+### 教訓
+- `tasks/lessons.md` §10 に記録
+- Drive API の eventual consistency は「作成 → 検索」のシーケンシャルな処理では問題にならないが、並行処理では致命的なレースコンディションを引き起こす
+- 初期化処理はクライアントの1箇所に集約し、完了待ちで後続処理を開始するパターンが正解
+
+### 未完了タスク（持ち越し）
+- Google OAuth アプリ審査申請（申請可能な状態・動画素材の準備が必要）
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用）
+- 旧 `orchrecit.pages.dev` の切り離し判断
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断）
