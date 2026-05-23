@@ -157,19 +157,33 @@ export async function setupUserWorkspace(accessToken: string): Promise<UserWorks
   let spreadsheetId = resFiles.files && resFiles.files.length > 0 ? resFiles.files[0].id : null;
 
   if (!spreadsheetId) {
-    const createUrl = `https://www.googleapis.com/drive/v3/files?fields=id`;
-    const createRes = await fetchGoogleAPI(createUrl, accessToken, {
+    // Drive API はユーザーのデフォルト設定に従い複数シートを生成するため、
+    // Sheets API でシート数を1枚に明示指定して作成する
+    const sheetsCreateUrl = `https://sheets.googleapis.com/v4/spreadsheets`;
+    const createRes = await fetchGoogleAPI(sheetsCreateUrl, accessToken, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            name: '経費記録',
-            mimeType: 'application/vnd.google-apps.spreadsheet',
-            parents: [rootFolderId]
+            properties: { title: '経費記録' },
+            sheets: [{ properties: { title: 'シート1', index: 0 } }]
         })
     });
-    spreadsheetId = createRes.id;
+    spreadsheetId = createRes.spreadsheetId;
 
-    // Set headers
+    // Sheets API 作成直後は My Drive ルートに置かれるため、Orch.RECIT フォルダへ移動する
+    const fileMetaUrl = `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=parents`;
+    const fileMeta = await fetchGoogleAPI(fileMetaUrl, accessToken);
+    const currentParents = (fileMeta.parents || []).join(',');
+    const moveUrl = currentParents
+        ? `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?addParents=${rootFolderId}&removeParents=${currentParents}&fields=id`
+        : `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?addParents=${rootFolderId}&fields=id`;
+    await fetchGoogleAPI(moveUrl, accessToken, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+
+    // ヘッダー行をシート1に書き込む
     const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:K1?valueInputOption=RAW`;
     await fetchGoogleAPI(updateUrl, accessToken, {
         method: 'PUT',
