@@ -13,7 +13,7 @@ function SproutLogo({ size = 20 }: { size?: number }) {
   );
 }
 
-const UPDATED_AT = '2026年5月20日';
+const UPDATED_AT = '2026年5月25日';
 
 const sections = [
   {
@@ -138,7 +138,11 @@ const sections = [
     title: '6. Cookie・ローカルストレージ',
     content: (
       <>
-        <p>本アプリはログインセッションの維持のため Cookie を使用します。また、カスタムルール設定をブラウザのローカルストレージに保存する場合があります。</p>
+        <p>本アプリはログインセッションの維持のため Cookie を使用します。また、以下の情報をブラウザのローカルストレージに保存します。</p>
+        <ul>
+          <li>カスタムルール（AI への独自指示）の設定内容</li>
+        </ul>
+        <p>カスタムルールの設定内容は、ユーザーの Google Drive 内の設定ファイル（Orch.RECIT / settings / config.json）にも同期して保存されます。</p>
         <p>これらはアプリの動作に必要な最小限の情報のみであり、広告・トラッキング目的には使用しません。</p>
       </>
     ),
@@ -270,7 +274,7 @@ export default function PrivacyPage() {
               <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
                 {s.title}
               </h2>
-              <div style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.85 }}>
+              <div className="pp-content" style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.85 }}>
                 {s.content}
               </div>
             </section>
