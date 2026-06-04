@@ -309,3 +309,42 @@ AppShell (home view) マウント
 - **setupUserWorkspace を全 API ルートで毎回呼ぶのはアンチパターン**: 初期化処理はクライアントの1箇所に集約し、完了を待ってから依存する処理を開始すること。
 - **既存重複の修復**: `orderBy=createdTime` + `slice(1).trash()` のパターンで自己修復できる。
 - **ゴミ箱移動後に SPA の state は更新されない**: React state はページリフレッシュするまでキャッシュされる。ゴミ箱移動後に旧 URL のリンクが残るのは仕様。リフレッシュで解消する。
+
+---
+
+## §11: Sheets API における `drive.file` スコープの制限（2026-06-04）
+
+### 🚨 症状
+`spreadsheets` スコープを削除して `drive.file` のみにしたところ、**明細の削除（DELETE）のみ 500 エラー**。レシート取込（write）・明細更新（values.update）・明細表示（values.get）は正常動作。
+
+### 🔍 根本原因
+Sheets API の操作は「値操作」と「構造操作」に分かれる。
+
+| 操作 | エンドポイント | `drive.file` スコープ |
+|------|--------------|----------------------|
+| 値の読み込み | `spreadsheets.values.get` | ✅ 動作 |
+| 値の書き込み | `spreadsheets.values.update` | ✅ 動作 |
+| 値のクリア | `spreadsheets.values.clear` | ✅ 動作 |
+| **行の削除** | **`spreadsheets.batchUpdate (deleteDimension)`** | **❌ 動作しない** |
+
+Google のドキュメントでは `drive.file` が `batchUpdate` に列挙されているが、実際には動作しなかった（構造変更操作には `spreadsheets` スコープが実質的に必要）。
+
+削除以外の操作は `values.*` エンドポイントを使用するため影響を受けなかった。
+
+### ✅ 対策
+`batchUpdate (deleteDimension)` を廃止し、`values.*` のみを使う**行シフト方式**に置換（`src/lib/google.ts: deleteRowInSheet`）:
+1. `values.get` で削除行より下のデータを読み込む
+2. `values.update` で1行上に詰める
+3. `values.clear` で末尾の重複行をクリア
+
+副次的メリット: `sheetId: 0` のハードコードも排除できる。
+
+### 🎯 教訓
+- **`drive.file` スコープは「値操作」専用と考える**: 行の削除・挿入・シート追加など「構造変更」を伴う操作は `batchUpdate` 経由であり、実際には `spreadsheets` スコープが必要。
+- **スコープ削減前に全 CRUD 操作を網羅テストする**: GET・PUT が動いても DELETE が動くとは限らない。各 HTTP メソッドが呼び出す API エンドポイントを洗い出してからスコープを削減すること。
+- **`batchUpdate` が唯一の行削除手段というわけではない**: `values.get + values.update + values.clear` の3ステップで同じ結果を実現できる。スコープ制限のある環境では、構造変更 API の代わりに値操作 API の組み合わせで代替可能かを検討する。
+
+### 🔍 診断のシグナル
+- スコープ変更後に特定の操作だけ 500 エラー
+- GET・PUT（`values.*` 系）は動くが DELETE だけ落ちる
+- Cloudflare Workers ログに `Google API Error: 403 PERMISSION_DENIED` が出る

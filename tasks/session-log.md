@@ -1139,3 +1139,169 @@ Type error: This comparison appears to be unintentional because the types '"449D
 - LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用）
 - 旧 `orchrecit.pages.dev` の切り離し判断
 - 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断）
+
+---
+
+## 2026-05-25〜26 セッション
+
+### 作業内容
+
+#### 1. プライバシーポリシー 内容精査・修正・フォーマット改善
+
+**内容修正**
+- §6「Cookie・ローカルストレージ」を実態に合わせて書き直し
+  - 旧: 「カスタムルール設定をブラウザのローカルストレージに保存する場合があります」（曖昧）
+  - 新: localStorage に常時保存 + Google Drive `Orch.RECIT/settings/config.json` にも同期保存する旨を明記
+  - 根拠: コードの `localStorage.setItem('orchRecitCustomPrompt', ...)` と `/api/settings` への Drive 同期を確認済み
+- `UPDATED_AT`: `2026年5月20日` → `2026年5月25日`
+
+**フォーマット修正**
+- Tailwind CSS preflight がすべての要素マージンをリセットするため、`<h3>/<p>/<ul>` に間隔がゼロになっていた問題を修正
+- `src/app/globals.css` に `.pp-content` クラスを追加（h3/p/ul/li の margin/padding を明示指定）
+- `src/app/privacy/page.tsx` の content div に `className="pp-content"` を追加
+- ビルド確認（12ページ・エラーなし）→ commit `80fb340` → push 済み
+
+#### 2. Google OAuth アプリ審査申請 実施（全ステップ完了）
+
+**Step 1: Google Search Console ドメイン所有権確認**
+- Cloud Console のブランディング確認でエラー → ホームページ URL `https://recit.orch-app.com` のドメインが Search Console 未登録が原因
+- Search Console → 「DNS レコードでのドメイン所有権の確認」→ Cloudflare 自動連携で TXT レコード自動追加
+- 「所有権を証明しました」完了
+
+**Step 2: ブランディング確認・公開**
+- Cloud Console → ブランディング → 「ブランディングを確認」→「問題は修正した」→ 続行
+- 「ブランディングは検証済みで、ユーザーに表示されています。」を確認
+- 「ブランディングを公開」ボタン → 公開完了
+
+**Step 3: データアクセス スコープ説明・動画登録**
+- スコープの理由（英文819/1000文字）を入力
+  - `drive.file`: ユーザーの Drive に領収書画像と設定ファイルを保存。アプリが作成したファイルのみアクセス
+  - `spreadsheets`: ユーザーの Drive に経費記録スプレッドシートを作成・更新。個人サーバーへのデータ保存なし
+- デモ動画: YouTube 限定公開でアップロード済み → URL `https://youtu.be/8sL39YcRf6I` を入力
+- 詳細フィールド: レビュアー向けテスト手順（英文）を入力
+- 「データアクセスの変更を保存しました」確認
+
+**Step 4: 確認アンケート → 審査申請送信**
+- 4問すべて × 回答（個人専用ではない・社内専用ではない・開発/テスト専用ではない・WordPress Gmail SMTP ではない）
+- 確認チェックボックス2つにチェック
+- 「確認のため送信」クリック
+
+**Step 5: 審査中ステータス確認**
+- 検証センター → Data access status: 「アプリのデータアクセスは審査中です。」
+- Branding status: 「ブランディングは検証済みで、ユーザーに表示されています。」
+
+### 決定事項
+- `spreadsheets` スコープは「機密性が高い（sensitive）」であり「制限付き（restricted）」ではないため CASA 監査不要
+- ユーザーサポートメールは `appyamamatsu1@gmail.com`（`support@orch-app.com` は Google アカウントでないためプルダウン非表示）
+- 承認済みドメインに `agrirecit.vercel.app` と `orchrecit.pages.dev` が残存（削除任意・ブロック要因ではない）
+
+### 未完了タスク（持ち越し）
+- Google OAuth 審査結果待ち（通常3〜5営業日、`appyamamatsu1@gmail.com` にメール通知予定）
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用）
+- 旧 `orchrecit.pages.dev` の切り離し判断
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断）
+
+---
+
+## 2026-05-30 セッション
+
+### 作業内容
+
+#### 1. Google OAuth 審査からの差し戻し対応
+
+**Google からの連絡内容（要旨）**
+- 「ホームページとして提供したウェブサイトが登録されていない」
+- `orch-app.com` のドメイン所有権の証明を求められた
+
+**原因の特定**
+- Search Console の `orch-app.com`（ドメインプロパティ）は `kaz.matsumoto0908@gmail.com` で所有権確認済み
+- Cloud Console プロジェクト `receipt-app-488304` のオーナーは `appyamamatsu1@gmail.com`
+- **2つのアカウントが不一致** → Google の OAuth 審査システムがドメイン所有権を確認できなかった
+
+**対応手順**
+1. `appyamamatsu1@gmail.com` で Search Console を開き、`orch-app.com` の所有権を証明
+   - Cloudflare との自動連携で TXT レコードを自動追加（「承認」ボタンで完了）
+   - 「所有権を証明しました」を確認
+2. `appyamamatsu1@gmail.com` で Cloud Console → ブランディング → 承認済みドメインを確認
+   - `orch-app.com` はすでに登録済みだった（追加作業不要）
+3. Google からのメールに直接返信し、審査再開を依頼
+
+### 決定事項
+- **Cloud Console のプロジェクトオーナー**: `appyamamatsu1@gmail.com`（確定）
+- **Search Console の `orch-app.com` 所有者**: `kaz.matsumoto0908`（既存）＋ `appyamamatsu1`（本日追加）の両アカウントで所有権確認済み
+- **Cloud Console の承認済みドメイン**: `agrirecit.vercel.app` / `orchrecit.pages.dev` / `orch-app.com` の3件が登録済み
+
+### 未完了タスク（持ち越し）
+- Google OAuth 審査結果待ち（差し戻し対応済み・審査再開依頼メール送信済み）
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用）
+- 旧 `orchrecit.pages.dev` の切り離し判断
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断）
+
+---
+
+## 2026-06-04 セッション
+
+### 作業内容
+
+#### 1. Google OAuth 審査差し戻し対応（2回目）
+
+**Google からの指摘内容（3点）**
+1. プライバシーポリシーに「Google ユーザーデータの共有先」が明記されていない
+2. プライバシーポリシーに「機密データの保護メカニズム」が記載されていない
+3. AI Integration: Google API Services Limited Use ポリシーへの準拠声明（英文）が必要
+4. スコープ縮小要求: `spreadsheets`（機密）を `drive.file`（非機密）で代替できないか確認
+
+**プライバシーポリシーの拡充（`src/app/privacy/page.tsx`）**
+- §4「第三者サービスの利用」末尾に「Google ユーザーデータの共有・開示」節を追加
+  - Drive/Sheets/Gemini 経由のみで処理し、その他第三者に共有しない旨を明記
+- 新規 §5「セキュリティ・データ保護」追加
+  - HTTPS 暗号化・OAuth 2.0・HTTP-only Cookie・drive.file スコープ最小化・サーバーレス・Formula Injection 対策の6点
+- 新規 §6「Google API Services 限定的使用ポリシーへの準拠」追加
+  - 日本語説明 + Google 指定の英文声明（Limited Use Compliance Statement）を Sprout カードスタイルで掲載
+- 旧 §5〜§9 → §7〜§11 に繰り下げ
+- `UPDATED_AT` を `2026年6月4日` に更新
+
+**auth.ts のスコープ縮小（`src/auth.ts`）**
+- `spreadsheets` スコープを削除し `drive.file` のみに縮小
+- アプリが自己作成したファイルのみ操作する設計のため、drive.file で動作するはずと判断
+- コミット `e26198c`
+
+**動作確認**
+- レシート取込（✅）・明細更新（✅）は正常動作
+- 明細削除（❌ 500 エラー）→ 原因特定 → 修正
+
+#### 2. 明細削除 500 エラーの修正
+
+**原因**
+- `deleteRowInSheet` が `spreadsheets.batchUpdate (deleteDimension)` を使用していた
+- `drive.file` スコープは `values.get`・`values.update` では動作するが、`batchUpdate` の構造変更操作では動作しない
+- GET（値読み込み）・PUT（値書き込み）が動作していたため、削除だけが影響を受けた
+- 副次的問題として `sheetId: 0` のハードコードも排除
+
+**修正（`src/lib/google.ts`、コミット `ba2fbd9`）**
+- `batchUpdate` を廃止し、`values.get + values.update + values.clear` によるシフト方式に置換
+  1. 削除行より下の行を `values.get` で読み込む
+  2. 1行上に `values.update` で上書きして詰める
+  3. 末尾の重複行を `values.clear` でクリア
+- 動作確認 OK
+
+#### 3. Google Cloud Console の手動作業（ユーザー実施済み）
+- データアクセス → `spreadsheets` スコープを削除
+- `drive.file` のみが「非機密のスコープ」に残存している状態を確認
+
+### コミット履歴（本日）
+- `e26198c` fix: Google OAuth 審査差し戻し対応 - PP 拡充 + spreadsheets スコープ除去
+- `ba2fbd9` fix: 明細削除を batchUpdate → values シフト方式に変更
+
+### 決定事項
+- `spreadsheets` スコープは `drive.file` に完全移行（Cloud Console + auth.ts 両方更新済み）
+- `deleteRowInSheet` は `batchUpdate` を使わない実装に確定
+- Google への返信メール（2通）はまだ未送信
+
+### 未完了タスク（持ち越し）
+- **Google へのメール返信（必須）**:
+  1. スコープ件: 「Confirming narrower scopes」と返信
+  2. PP・Limited Use 件: 更新済み PP リンク（`https://recit.orch-app.com/privacy`）を添えて対応完了を報告
+- LP `metadataBase` の追加（OGP 画像の絶対 URL 解決用）
+- 旧 `orchrecit.pages.dev` の切り離し判断
+- 課金システム関連（プラン構造決定・決済プロバイダ選定・D1判断）
