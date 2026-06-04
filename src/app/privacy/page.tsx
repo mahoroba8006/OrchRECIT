@@ -13,7 +13,7 @@ function SproutLogo({ size = 20 }: { size?: number }) {
   );
 }
 
-const UPDATED_AT = '2026年5月25日';
+const UPDATED_AT = '2026年6月4日';
 
 const sections = [
   {
@@ -114,13 +114,54 @@ const sections = [
           </a>
         </p>
 
-        <p>上記以外の第三者にユーザーの個人情報を提供することはありません。</p>
+        <h3>Google ユーザーデータの共有・開示</h3>
+        <p>Google OAuth を通じて取得したユーザーデータ（Googleアカウント情報・Drive ファイル・Sheets データ）は、上記の Google LLC サービス（OAuth 認証・Drive API・Sheets API・Gemini API）を経由して処理されるのみで、その他の第三者に共有・転送・開示することはありません。領収書画像・経費データは本アプリの独自サーバーに保存されず、すべてユーザー自身の Google Drive に保存されます。</p>
+      </>
+    ),
+  },
+  {
+    id: 'data-protection',
+    title: '5. セキュリティ・データ保護',
+    content: (
+      <>
+        <p>本アプリは以下のセキュリティ対策を講じています。</p>
+        <ul>
+          <li><strong>通信の暗号化</strong>：すべての通信は HTTPS（TLS）で暗号化されます。</li>
+          <li><strong>OAuth 2.0 認証</strong>：Google の OAuth 2.0 プロトコルを利用し、パスワードを本アプリが保存・取り扱うことはありません。</li>
+          <li><strong>アクセストークンの保護</strong>：アクセストークンは HTTP-only・Secure 属性付きの Cookie に保存し、JavaScript からのアクセスを防止します。</li>
+          <li><strong>最小スコープの原則</strong>：本アプリが独自に作成したファイルのみにアクセスできる <code>drive.file</code> スコープのみを要求します。ユーザーの Drive 全体にアクセスするスコープは要求しません。</li>
+          <li><strong>サーバーレスアーキテクチャ</strong>：本アプリのサーバーはユーザーのデータを永続保存しません。処理はリクエスト単位で完結し、セッション終了後にメモリから消去されます。</li>
+          <li><strong>Formula Injection 対策</strong>：スプレッドシートへの書き込みはすべてリテラル値（RAW モード）で行い、数式インジェクション攻撃を防止します。</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'limited-use',
+    title: '6. Google API Services 限定的使用ポリシーへの準拠',
+    content: (
+      <>
+        <p>本アプリが Google API から取得したユーザーデータの利用は、以下の方針に従います。</p>
+        <ul>
+          <li>Google API から取得したデータは、アプリの機能（領収書の読取・経費記録・スプレッドシートへの保存）の提供にのみ使用します。</li>
+          <li>取得したデータを AI モデルのトレーニングに使用することはありません。</li>
+          <li>取得したデータを広告表示や第三者への販売・転送に使用することはありません。</li>
+          <li>ユーザーが明示的に許可した目的以外にデータを使用することはありません。</li>
+        </ul>
+        <p style={{ marginTop: 16, padding: '14px 18px', background: 'var(--primary-soft)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13.5, lineHeight: 1.8 }}>
+          <strong>Google API Limited Use Compliance Statement:</strong><br />
+          The use and transfer to any other app of information received from Google APIs will adhere to the{' '}
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">
+            Google API Services User Data Policy
+          </a>
+          , including the Limited Use requirements.
+        </p>
       </>
     ),
   },
   {
     id: 'rights',
-    title: '5. 利用者の権利',
+    title: '7. 利用者の権利',
     content: (
       <>
         <p>ユーザーはいつでも以下の操作が可能です。</p>
@@ -135,7 +176,7 @@ const sections = [
   },
   {
     id: 'cookie',
-    title: '6. Cookie・ローカルストレージ',
+    title: '8. Cookie・ローカルストレージ',
     content: (
       <>
         <p>本アプリはログインセッションの維持のため Cookie を使用します。また、以下の情報をブラウザのローカルストレージに保存します。</p>
@@ -149,7 +190,7 @@ const sections = [
   },
   {
     id: 'contact',
-    title: '7. お問い合わせ',
+    title: '9. お問い合わせ',
     content: (
       <>
         <p>本プライバシーポリシーに関するご質問・ご意見は、以下のお問い合わせフォームよりご連絡ください。</p>
@@ -163,7 +204,7 @@ const sections = [
   },
   {
     id: 'disclaimer',
-    title: '8. サービスのご利用について',
+    title: '10. サービスのご利用について',
     content: (
       <>
         <p>本サービスでは AI（Google Gemini）を用いて勘定科目の判定や記帳に関するコメントを表示しますが、これらはあくまで参考情報です。実際の経費計上や税務申告における最終的な記帳内容・分類の判断は、ご利用者ご自身が行うものとし、当方は AI 判定結果の正確性・適合性を保証するものではありません。</p>
@@ -173,7 +214,7 @@ const sections = [
   },
   {
     id: 'revision',
-    title: '9. ポリシーの改定',
+    title: '11. ポリシーの改定',
     content: (
       <>
         <p>本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合は本アプリ上でお知らせします。</p>
