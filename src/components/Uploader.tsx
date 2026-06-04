@@ -678,7 +678,7 @@ export default function Uploader({ onNavigateHistory }: Props) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
                       <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M12 4v12M7 11l5 5 5-5" />
                     </svg>
-                    取込
+                    内容を承認・取込
                   </>
                 )}
               </button>
@@ -711,6 +711,9 @@ export default function Uploader({ onNavigateHistory }: Props) {
                 破棄
               </button>
             </div>
+            <p style={{ fontSize: 11, color: 'var(--ink-mute)', textAlign: 'center', marginTop: 10, lineHeight: 1.6 }}>
+              科目はAIによる提案です。最終的な確定はご自身でご判断ください。
+            </p>
           </div>
         </div>
       )}
@@ -796,8 +799,8 @@ export default function Uploader({ onNavigateHistory }: Props) {
               <path d="m8 12 3 3 5-6" fill="none" stroke="#fff" strokeWidth="2" />
             </svg>
           </div>
-          <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px' }}>
-            すべての確認が完了しました
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px', lineHeight: 1.6 }}>
+            本アプリの記録データは電子帳簿保存法が定める要件を満たしていません。レシート・領収書の原本は、確定申告や税務調査に備えてご自身で必ず保管してください。
           </h3>
           <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 20px' }}>
             取込 <b style={{ color: 'var(--ok)' }}>{savedCount}</b> 件 ／ 破棄 <b>{skippedCount}</b> 件
@@ -809,7 +812,7 @@ export default function Uploader({ onNavigateHistory }: Props) {
             onMouseUp={e => (e.currentTarget.style.transform = '')}
             onMouseLeave={e => (e.currentTarget.style.transform = '')}
           >
-            次のレシートへ →
+            了承した
           </button>
         </div>
       )}

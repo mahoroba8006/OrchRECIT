@@ -204,11 +204,15 @@ const sections = [
   },
   {
     id: 'disclaimer',
-    title: '10. サービスのご利用について',
+    title: '10. 免責事項',
     content: (
       <>
-        <p>本サービスでは AI（Google Gemini）を用いて勘定科目の判定や記帳に関するコメントを表示しますが、これらはあくまで参考情報です。実際の経費計上や税務申告における最終的な記帳内容・分類の判断は、ご利用者ご自身が行うものとし、当方は AI 判定結果の正確性・適合性を保証するものではありません。</p>
-        <p>税務上の判断についてご不明な点がある場合は、税理士等の専門家へご相談ください。</p>
+        <p>AI 提案の性質、電子帳簿保存法への非対応、損害賠償の制限については、免責事項ページをご確認ください。</p>
+        <p>
+          <Link href="/disclaimer" style={{ color: 'var(--secondary)', fontWeight: 600, textDecoration: 'none' }}>
+            免責事項を確認する →
+          </Link>
+        </p>
       </>
     ),
   },
@@ -337,6 +341,9 @@ export default function PrivacyPage() {
         <div style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
             トップページ
+          </Link>
+          <Link href="/disclaimer" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
+            免責事項
           </Link>
           <Link href="/contact" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
             お問い合わせ

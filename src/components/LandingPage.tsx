@@ -56,12 +56,12 @@ const features = [
   {
     icon: <Sparkles size={22} />, color: '#1794D7', bg: '#d9edf8',
     title: '農業専用 AI ＋ あなた専用ルール',
-    desc: '青色申告決算書に準拠した農業科目を Gemini AI が自動判定。さらに地域特有の処理やご自身の判断基準を AI に直接指示でき、あなた専用の科目判定ができます。',
+    desc: '青色申告決算書を参考に、農業科目の候補を Gemini AI が自動で提案。さらに地域特有の処理やご自身の判断基準を AI に直接指示でき、あなた専用の科目提案ができます。',
   },
   {
     icon: <ListChecks size={22} />, color: '#72D07C', bg: '#e3f4e5',
-    title: '明細ごとに、取込と科目を判定',
-    desc: '1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目が判定されます。',
+    title: '明細ごとに、取込と科目を提案',
+    desc: '1 枚のレシートに農業経費とそれ以外が混ざっていても、複数科目が混在していても、「明細単位で取込」で商品ごとに取込の要否を選択。それぞれに科目の候補が提案されます。',
   },
   {
     icon: <PieChart size={22} />, color: '#2faa55', bg: '#dff2e4',
@@ -93,8 +93,8 @@ const steps = [
   },
   {
     icon: <Sparkles size={28} />,
-    title: 'AI の判定を確認する',
-    desc: 'OCR と科目判定の結果を確認・修正します。アドバイスや判定理由もここで表示。',
+    title: 'AI の提案を確認する',
+    desc: 'OCR と科目提案の結果を確認・修正します。提案根拠やアドバイスもここで表示。',
   },
   {
     icon: <CheckCheck size={28} />,
@@ -400,11 +400,11 @@ export default function LandingPage() {
                 </div>
                 <h3>撮るだけで、AI が判定理由まで教えてくれる</h3>
                 <p>
-                  購入日・支払先・金額の自動入力はもちろん、農業の青色申告決算書に準拠した勘定科目を Gemini AI が自動判定。「なぜその科目なのか」「按分が必要な理由」まで毎回ワンポイントで解説します。
+                  購入日・支払先・金額の自動入力はもちろん、青色申告決算書を参考に、勘定科目の候補を Gemini AI が提案。「なぜその科目か」「按分が必要な理由」まで毎回ワンポイントで解説します。
                 </p>
                 <ul className="tour-bullets">
-                  <li><CheckCheck size={14} /> 農業専用 AI 科目判定</li>
-                  <li><CheckCheck size={14} /> 判定理由をその場で確認</li>
+                  <li><CheckCheck size={14} /> 農業専用 AI 科目提案</li>
+                  <li><CheckCheck size={14} /> 提案根拠をその場で確認</li>
                   <li><CheckCheck size={14} /> 修正もワンタップで完結</li>
                 </ul>
               </div>
@@ -568,7 +568,7 @@ export default function LandingPage() {
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
               {[
-                '科目の判定根拠を毎回解説',
+                '科目の提案根拠を毎回解説',
                 '農業会計・税務ルールに基づく解説',
                 '積み重なるほど申告に自信がつく',
               ].map((t, i) => (
@@ -842,6 +842,10 @@ export default function LandingPage() {
           <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
           <Link href="/privacy" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
             プライバシーポリシー
+          </Link>
+          <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
+          <Link href="/disclaimer" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none', fontWeight: 500 }}>
+            免責事項
           </Link>
           <span style={{ color: 'var(--border)', fontSize: 12 }}>|</span>
           <Link href="/dashboard" style={{ fontSize: 12.5, color: 'var(--secondary)', textDecoration: 'none', fontWeight: 500 }}>
