@@ -358,27 +358,33 @@ export async function updateRowInSheet(accessToken: string, spreadsheetId: strin
     });
 }
 
-export async function deleteRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number): Promise<any> {
+export async function deleteRowInSheet(accessToken: string, spreadsheetId: string, rowIndex: number): Promise<void> {
     if (!spreadsheetId) throw new Error('spreadsheetId is not provided');
-    const zeroBasedIndex = rowIndex - 1;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
-    return await fetchGoogleAPI(url, accessToken, {
+
+    // batchUpdate (deleteDimension) は drive.file スコープでは動作しないため、
+    // values.get + values.update + values.clear で行シフトを実装する。
+    // 削除行より下のデータを1行上に詰め、末尾の空行をクリアする。
+
+    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex + 1}:K`;
+    const data = await fetchGoogleAPI(readUrl, accessToken);
+    const belowRows: string[][] = data.values || [];
+
+    if (belowRows.length > 0) {
+        const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:K${rowIndex + belowRows.length - 1}?valueInputOption=RAW`;
+        await fetchGoogleAPI(writeUrl, accessToken, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: belowRows }),
+        });
+    }
+
+    // 末尾に残った重複行をクリア
+    const staleRowIndex = rowIndex + belowRows.length;
+    const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${staleRowIndex}:K${staleRowIndex}:clear`;
+    await fetchGoogleAPI(clearUrl, accessToken, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            requests: [
-                {
-                    deleteDimension: {
-                        range: {
-                            sheetId: 0,
-                            dimension: 'ROWS',
-                            startIndex: zeroBasedIndex,
-                            endIndex: zeroBasedIndex + 1,
-                        }
-                    }
-                }
-            ]
-        })
+        body: JSON.stringify({}),
     });
 }
 
