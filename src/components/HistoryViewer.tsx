@@ -296,7 +296,7 @@ export default function HistoryViewer() {
         boxShadow: 'var(--shadow-card)',
         overflow: 'hidden',
       }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div data-scroll style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr style={{ background: 'var(--bg-soft)', borderBottom: '1px solid var(--border)' }}>
