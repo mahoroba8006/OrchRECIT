@@ -82,7 +82,7 @@ export const config = {
         }
     },
     useSecureCookies: isHttps,
-    secret: (() => { const s = getEnv("NEXTAUTH_SECRET"); if (!s) throw new Error("NEXTAUTH_SECRET is not set"); return s; })(),
+    secret: process.env.NEXTAUTH_SECRET,
     debug: false,
     session: {
         strategy: "jwt",
