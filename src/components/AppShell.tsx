@@ -10,6 +10,7 @@ import WorkspaceLinks from '@/components/WorkspaceLinks';
 import MonthSummary from '@/components/MonthSummary';
 import HistoryViewer from '@/components/HistoryViewer';
 import AboutScreen from '@/components/AboutScreen';
+import SwipeViews from '@/components/SwipeViews';
 import SignInButton from '@/components/SignInButton';
 
 type View = 'home' | 'history' | 'about';
@@ -23,6 +24,8 @@ interface Props {
   session: Session | null;
 }
 
+const SWIPE_VIEWS: ('home' | 'history')[] = ['home', 'history'];
+
 export default function AppShell({ session }: Props) {
   const [view, setView] = useState<View>('home');
   const [isWebView, setIsWebView] = useState(false);
@@ -33,6 +36,11 @@ export default function AppShell({ session }: Props) {
   const handleSetView = useCallback((v: View) => {
     setView(v);
   }, []);
+
+  const swipeIndex = view === 'history' ? 1 : 0;
+  const handleSwipeChange = useCallback((i: number) => {
+    handleSetView(SWIPE_VIEWS[i] ?? 'home');
+  }, [handleSetView]);
 
   useEffect(() => {
     const handleNavAbout = () => handleSetView('about');
@@ -213,19 +221,21 @@ export default function AppShell({ session }: Props) {
               </button>
             </div>
           </div>
-        ) : view === 'home' ? (
-          /* ── ホーム ── */
-          <div style={{ maxWidth: 720, margin: '0 auto', padding: '8px 20px 80px' }}>
-            <Uploader onNavigateHistory={() => handleSetView('history')} />
-            <WorkspaceLinks workspace={workspace} />
-            <MonthSummary workspaceReady={workspaceReady} />
-          </div>
-        ) : view === 'history' ? (
-          /* ── 履歴 ── */
-          <HistoryViewer />
-        ) : (
-          /* ── 使い方 ── */
+        ) : view === 'about' ? (
+          /* ── 使い方（スワイプ対象外） ── */
           <AboutScreen />
+        ) : (
+          /* ── ホーム / 明細（スワイプ切り替え） ── */
+          <SwipeViews index={swipeIndex} onIndexChange={handleSwipeChange}>
+            {[
+              <div key="home" style={{ maxWidth: 720, margin: '0 auto', padding: '8px 20px 80px' }}>
+                <Uploader onNavigateHistory={() => handleSetView('history')} />
+                <WorkspaceLinks workspace={workspace} />
+                <MonthSummary workspaceReady={workspaceReady} />
+              </div>,
+              <HistoryViewer key="history" />,
+            ]}
+          </SwipeViews>
         )}
       </div>
     </div>
