@@ -40,6 +40,7 @@ export default function SwipeViews({ index, onIndexChange, children }: SwipeView
     const track = trackRef.current;
     if (!track) return;
 
+    // onStart/onMove/onEnd/onCancel が同一クロージャ内で共有する状態変数
     let startX = 0;
     let startY = 0;
     let cancelled = false; // data-scroll 内 or 縦スクロール判定で無効化
@@ -105,14 +106,24 @@ export default function SwipeViews({ index, onIndexChange, children }: SwipeView
       track.style.transform = `translateX(-${i * 100}vw)`;
     };
 
+    const onCancel = () => {
+      if (!active) return;
+      cancelled = true;
+      active = false;
+      track.style.transition = 'transform 280ms cubic-bezier(0.25, 1, 0.5, 1)';
+      track.style.transform = `translateX(-${indexRef.current * 100}vw)`;
+    };
+
     track.addEventListener('touchstart', onStart, { passive: true });
     track.addEventListener('touchmove', onMove, { passive: false });
     track.addEventListener('touchend', onEnd, { passive: true });
+    track.addEventListener('touchcancel', onCancel, { passive: true });
 
     return () => {
       track.removeEventListener('touchstart', onStart);
       track.removeEventListener('touchmove', onMove);
       track.removeEventListener('touchend', onEnd);
+      track.removeEventListener('touchcancel', onCancel);
     };
   }, []); // ライブ値は refs 経由なので deps は空
 
@@ -123,7 +134,7 @@ export default function SwipeViews({ index, onIndexChange, children }: SwipeView
         style={{ display: 'flex', willChange: 'transform' }}
       >
         {children.map((child, i) => (
-          <div key={i} style={{ flex: '0 0 100vw', width: '100vw' }}>
+          <div key={`panel-${i}`} style={{ flex: '0 0 100vw', width: '100vw' }}>
             {child}
           </div>
         ))}
