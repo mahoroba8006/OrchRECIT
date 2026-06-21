@@ -1,5 +1,7 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
+
 interface WorkspaceData {
   spreadsheetUrl: string;
   folderUrl: string;
@@ -35,8 +37,20 @@ const ITEMS = [
   },
 ];
 
+function withAuthUser(url: string, email: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('authuser', email);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export default function WorkspaceLinks({ workspace }: Props) {
   const data = workspace;
+  const { data: session } = useSession();
+  const email = session?.user?.email ?? '';
 
   if (!data) return null;
 
@@ -48,7 +62,7 @@ export default function WorkspaceLinks({ workspace }: Props) {
         return (
           <a
             key={item.urlKey}
-            href={data[item.urlKey]}
+            href={email ? withAuthUser(data[item.urlKey], email) : data[item.urlKey]}
             target="_blank"
             rel="noopener noreferrer"
             style={{
