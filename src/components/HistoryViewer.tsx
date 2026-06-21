@@ -296,6 +296,21 @@ export default function HistoryViewer() {
         boxShadow: 'var(--shadow-card)',
         overflow: 'hidden',
       }}>
+        {/* 空状態はスクロールコンテナの外に置くことでモバイルでも画面内に表示 */}
+        {!isLoading && filteredData.length === 0 && (
+          <div style={{ padding: '56px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.4">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="12" y2="17" />
+            </svg>
+            <div style={{ color: 'var(--ink-mute)', fontSize: 13, fontWeight: 600 }}>
+              {data.length === 0 ? 'データがありません' : '条件に一致する明細がありません'}
+            </div>
+          </div>
+        )}
+        {(isLoading || filteredData.length > 0) && (
         <div data-scroll style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
@@ -313,22 +328,6 @@ export default function HistoryViewer() {
                 <tr>
                   <td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>
                     読み込み中...
-                  </td>
-                </tr>
-              ) : filteredData.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ padding: '56px 48px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.4">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="8" y1="13" x2="16" y2="13" />
-                        <line x1="8" y1="17" x2="12" y2="17" />
-                      </svg>
-                      <div style={{ color: 'var(--ink-mute)', fontSize: 13, fontWeight: 600 }}>
-                        {data.length === 0 ? 'データがありません' : '条件に一致する明細がありません'}
-                      </div>
-                    </div>
                   </td>
                 </tr>
               ) : pagedData.map(row => {
@@ -430,6 +429,7 @@ export default function HistoryViewer() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* ページネーション */}
