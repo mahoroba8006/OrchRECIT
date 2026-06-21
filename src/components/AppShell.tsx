@@ -37,7 +37,8 @@ export default function AppShell({ session }: Props) {
     setView(v);
   }, []);
 
-  const swipeIndex = view === 'history' ? 1 : 0;
+  // view === 'about' のときは SwipeViews は描画されないため、swipeIndex は参照されない
+  const swipeIndex = SWIPE_VIEWS.indexOf(view as 'home' | 'history');
   const handleSwipeChange = useCallback((i: number) => {
     handleSetView(SWIPE_VIEWS[i] ?? 'home');
   }, [handleSetView]);
