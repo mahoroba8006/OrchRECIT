@@ -82,7 +82,7 @@ export const config = {
         }
     },
     useSecureCookies: isHttps,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
     debug: false,
     session: {
         strategy: "jwt",
